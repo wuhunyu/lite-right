@@ -5,7 +5,13 @@ import LiteRightCore
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(SharedPreferences().load().showDockIcon ? .regular : .accessory)
+        // LSUIElement already establishes accessory mode. Avoid changing activation
+        // policy while SwiftUI is constructing its initial scene graph.
+        let desired: NSApplication.ActivationPolicy = SharedPreferences().load().showDockIcon ? .regular : .accessory
+        guard NSApp.activationPolicy() != desired else { return }
+        DispatchQueue.main.async {
+            if NSApp.activationPolicy() != desired { NSApp.setActivationPolicy(desired) }
+        }
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         NSApp.activate(ignoringOtherApps: true)
