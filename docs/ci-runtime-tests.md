@@ -39,3 +39,11 @@ XCUITest 需登录图形会话：
 ```sh
 xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug -destination 'platform=macOS' -only-testing:LiteRightUITests CODE_SIGNING_ALLOWED=NO test
 ```
+
+## 2026-10-28 实测结果
+
+- Required macOS 27 检查（27 项 Swift 测试、实际文件系统、完整 `build-for-testing`、App Bundle/appex 结构）**全部通过**。详见 [Run #40680739250](https://github.com/wuhunyu/lite-right/actions/runs/40680739250)。
+- 实验性 XCUITest **0/2 通过，实际失败**：App 在 macOS 27.0.1/Xcode 27.1 Runner 下出现 SIGSEGV 栈溢出，另一测试无法加载 Accessibility。
+- `pluginkit -a` 命令成功返回，**不等同于 Finder 右键菜单出现**。
+- 启动崩溃追踪：[Issue #4](https://github.com/wuhunyu/lite-right/issues/4)；签名 Finder 真机测试：[Issue #3](https://github.com/wuhunyu/lite-right/issues/3)。
+- 因测试目前尚不稳定，GUI job 使用 `continue-on-error`，**工作流绿色不等于 GUI 绿色**，应查看两个 job 的独立结论。P0 仍为 No-Go。

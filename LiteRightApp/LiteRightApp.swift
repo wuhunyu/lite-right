@@ -5,13 +5,7 @@ import LiteRightCore
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // LSUIElement already establishes accessory mode. Avoid changing activation
-        // policy while SwiftUI is constructing its initial scene graph.
-        let desired: NSApplication.ActivationPolicy = SharedPreferences().load().showDockIcon ? .regular : .accessory
-        guard NSApp.activationPolicy() != desired else { return }
-        DispatchQueue.main.async {
-            if NSApp.activationPolicy() != desired { NSApp.setActivationPolicy(desired) }
-        }
+        NSApp.setActivationPolicy(SharedPreferences().load().showDockIcon ? .regular : .accessory)
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         NSApp.activate(ignoringOtherApps: true)
@@ -52,6 +46,7 @@ struct MenuBarActions: View {
             openWindow(id: "preferences")
             NSApp.activate(ignoringOtherApps: true)
         }
+        Divider()
         Button("退出 LiteRight") { NSApp.terminate(nil) }
     }
 }

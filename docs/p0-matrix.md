@@ -24,3 +24,8 @@
 ## CI 自动化覆盖
 
 参见 [ci-runtime-tests.md](ci-runtime-tests.md)。Swift/Core 与实际 macOS 构建产物可在 GitHub Actions 校验；Finder 右键可见性与权限仍为人工 P0，CI 的 pluginkit 注册试验不等同于通过。
+
+## 实测补充（2026-10-28）
+
+GitHub Actions `xcode-27` 已通过 27 项真实文件系统/Swift 单测和完整应用包/扩展编译，未完成 Finder 实际右键菜单验收。
+GUI 试验 2 项测试均失败，详情 [Issue #4](https://github.com/wuhunyu/lite-right/issues/4)；签名实机验收详见 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3)。
