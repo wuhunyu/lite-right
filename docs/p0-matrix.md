@@ -20,3 +20,7 @@
 终端：Terminal / iTerm2 新 Window、Tab 偏好、路径特殊字符各 20 次待测。
 
 未记录真机数据前，不得将本 PoC 标记为 Go，也不得打包正式发布。
+
+## CI 自动化覆盖
+
+参见 [ci-runtime-tests.md](ci-runtime-tests.md)。Swift/Core 与实际 macOS 构建产物可在 GitHub Actions 校验；Finder 右键可见性与权限仍为人工 P0，CI 的 pluginkit 注册试验不等同于通过。

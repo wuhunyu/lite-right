@@ -84,7 +84,7 @@ jobs:
           launchctl print "gui/$(id -u)" 2>&1 | head -n 20 | tee -a gui-environment.log || true
       - name: Run a real macOS app using XCUITest
         id: ui
-        timeout-minutes: 12
+        timeout-minutes: 5
         run: |
           set -o pipefail
           xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug \

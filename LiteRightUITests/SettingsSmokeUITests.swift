@@ -6,6 +6,7 @@ final class SettingsSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    @MainActor
     func testSettingsWindowIsActuallyLaunched() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launch()
@@ -14,6 +15,7 @@ final class SettingsSmokeUITests: XCTestCase {
                       "LiteRight must display its native preferences window")
     }
 
+    @MainActor
     func testInitialMenuPageContainsAllFiveActions() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launch()
