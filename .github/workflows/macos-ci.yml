@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   native-build:
-    runs-on: macos-27
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v4
       - run: swift test --package-path LiteRightCore
