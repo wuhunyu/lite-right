@@ -55,9 +55,24 @@ targets:
         CURRENT_PROJECT_VERSION: 1
     dependencies:
       - package: LiteRightCore
+  LiteRightUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: LiteRightUITests
+    dependencies:
+      - target: LiteRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wuhunyu.literight.uitests
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   LiteRight:
     build:
       targets:
         LiteRight: all
         LiteRightFinderExtension: all
+    test:
+      targets:
+        - LiteRightUITests
+      gatherCoverageData: false

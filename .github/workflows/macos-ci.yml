@@ -1,15 +1,20 @@
-name: macOS native build
+name: macOS native build and runtime tests
 on:
   push:
-    branches: [main, 'feat/**']
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 concurrency:
   group: literight-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  contents: read
 jobs:
   core-and-app:
+    name: Required / Swift tests and app bundle verification
     runs-on: xcode-27
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Toolchain
@@ -17,8 +22,10 @@ jobs:
           xcodebuild -version
           swift --version
           brew install xcodegen
-      - name: Test Swift Core
-        run: swift test --package-path LiteRightCore
+      - name: Real filesystem and core tests
+        run: |
+          set -o pipefail
+          swift test --package-path LiteRightCore 2>&1 | tee swift-test.log
       - name: Generate app icons from vector source
         run: |
           python3 -m venv .icon-venv
@@ -26,5 +33,98 @@ jobs:
           .icon-venv/bin/python tools/export-icons.py
       - name: Generate Xcode project
         run: xcodegen generate
-      - name: Build native macOS app and Finder extension
-        run: xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      - name: Build app, extension, and XCTest runner for testing
+        run: |
+          set -o pipefail
+          xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/LiteRightDerived" \
+            CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee xcode-build.log
+      - name: Inspect the actual app and embedded Finder extension
+        run: |
+          swift ci/verify-app-bundle.swift "$RUNNER_TEMP/LiteRightDerived/Build/Products/Debug/LiteRight.app" | tee bundle-check.log
+      - name: Required checks summary
+        if: success()
+        run: |
+          echo '### Required macOS checks passed' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Real filesystem and Swift unit tests completed successfully.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- App, Finder extension and UI-test runner compiled.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Main bundle and embedded extension structure validated.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Finder registration and interactive right-click behavior are **not** covered here.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-required-logs
+          path: |
+            swift-test.log
+            xcode-build.log
+            bundle-check.log
+          if-no-files-found: warn
+          retention-days: 14
+  gui-experimental:
+    name: Experimental / Native window and Finder registration
+    needs: core-and-app
+    runs-on: xcode-27
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain and icons
+        run: |
+          brew install xcodegen
+          python3 -m venv .icon-venv
+          .icon-venv/bin/python -m pip install --disable-pip-version-check pillow cairosvg
+          .icon-venv/bin/python tools/export-icons.py
+          xcodegen generate
+      - name: Capture graphics session diagnostics
+        run: |
+          sw_vers | tee gui-environment.log
+          printf 'runner_user=%s\n' "$(whoami)" | tee -a gui-environment.log
+          pgrep -fl Finder | tee -a gui-environment.log || true
+          launchctl print "gui/$(id -u)" 2>&1 | head -n 20 | tee -a gui-environment.log || true
+      - name: Run a real macOS app using XCUITest
+        id: ui
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug \
+            -destination 'platform=macOS' \
+            -parallel-testing-enabled NO \
+            -only-testing:LiteRightUITests \
+            -derivedDataPath "$RUNNER_TEMP/LiteRightDerivedUI" \
+            -resultBundlePath "$GITHUB_WORKSPACE/LiteRightUI.xcresult" \
+            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee xcode-ui-test.log
+      - name: Probe Finder extension registration on ephemeral runner
+        if: always()
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          EXT="$RUNNER_TEMP/LiteRightDerivedUI/Build/Products/Debug/LiteRight.app/Contents/PlugIns/LiteRightFinderExtension.appex"
+          test -d "$EXT"
+          /usr/bin/pluginkit -a "$EXT" 2>&1 | tee finder-registration.log
+          /usr/bin/pluginkit -m -i com.wuhunyu.literight.finder 2>&1 | tee -a finder-registration.log
+          echo 'Registration presence is not proof of Finder menu visibility or permission approval.' | tee -a finder-registration.log
+      - name: Report experimental outcome
+        if: always()
+        run: |
+          echo '### Experimental interactive tests' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This stage is **not a merge gate** until GUI and TCC behavior are validated.' >> "$GITHUB_STEP_SUMMARY"
+          if [ -d LiteRightUI.xcresult ]; then
+            xcrun xcresulttool get test-results summary --path LiteRightUI.xcresult 2>&1 | tee ui-summary.log || true
+          fi
+          if [ -f xcode-ui-test.log ]; then
+            tail -n 20 xcode-ui-test.log >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo 'Real Finder right-click interaction and authorization still require a signed desktop session.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-experimental-ui-results
+          path: |
+            gui-environment.log
+            xcode-ui-test.log
+            finder-registration.log
+            ui-summary.log
+            LiteRightUI.xcresult
+          if-no-files-found: warn
+          retention-days: 14

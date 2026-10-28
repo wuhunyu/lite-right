@@ -35,3 +35,9 @@ App Icon PNG 由已提交的 SVG 矢量源码在构建时生成，不要求运�
 默认监控主目录，不保证搜索结果、最近使用、iCloud、外接盘和网络共享的菜单可用；若 P0 未通过，禁止宣称可发布。隐藏文件的默认切换影响整个 Finder，并在确认后重启 Finder。
 
 运行不需要联网、root、关闭 SIP、Electron 或 WebView。仓库暂不附加开源许可证。
+
+## 自动化验证
+
+GitHub Actions 在 macOS 27 Runner 执行真实磁盘集成测试、编译应用及 Finder 扩展、验证生成的 App Bundle，并尝试启动原生 GUI/XCUITest；详见 [CI 运行时测试](docs/ci-runtime-tests.md)。图形会话与 Finder 扩展授权受托管环境限制，因此 UI 检查暂不作为合并门禁。
+
+**当前已知阻断：** macOS 27 GitHub Runner 的原生 UI 启动测试发生崩溃（[Issue #4](https://github.com/wuhunyu/lite-right/issues/4)），即使必选 CI 通过，也不能认为应用可正式发布。
