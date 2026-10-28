@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="LiteRight monochrome menu bar icon">
+ <title>LiteRight menu bar symbol</title>
+ <path d="M13.8 3.25 C7.9 3.25 5.55 7.3 5.55 12.8 V19.3 C5.55 26.1 8.45 29 13.8 29 C19.5 29 22 25.6 22 19.3 V12.8 C22 7.3 19.2 3.25 13.8 3.25Z" fill="none" stroke="#000" stroke-width="2.35" stroke-linejoin="round"/>
+ <path d="M13.8 4.7 V13.7 M6.6 14.5 H20.9" stroke="#000" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+ <path d="M14 4.9 C18.65 5.15 20.7 8.55 20.7 13.7 H14Z" fill="#000"/>
+ <rect x="12.2" y="6.2" width="3.2" height="7.4" rx="1.6" fill="#fff"/>
+ <path d="M23.3 13.4 H29.8 V23.8 H23.3" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="M25.1 16.1 H28 M25.1 18.7 H28 M25.1 21.3 H28" stroke="#000" stroke-width="1.25" stroke-linecap="round"/>
+</svg>
