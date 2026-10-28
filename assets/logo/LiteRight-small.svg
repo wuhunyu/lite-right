@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="LiteRight simplified small-scale icon">
+<title>LiteRight compact icon</title>
+<defs>
+ <linearGradient id="back" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8dbef5"/><stop offset="0.47" stop-color="#78a2db"/><stop offset="1" stop-color="#f6bd97"/></linearGradient>
+ <linearGradient id="mouse" x1="0" y1="0" x2="0.9" y2="1"><stop stop-color="#fffefd"/><stop offset="1" stop-color="#d8d8e9"/></linearGradient>
+ <linearGradient id="orange" x1="0" y1="0" x2="0.75" y2="1"><stop stop-color="#ffe5a2"/><stop offset="1" stop-color="#f9ae61"/></linearGradient>
+</defs>
+<rect x="6" y="6" width="116" height="116" rx="28" fill="url(#back)" stroke="#ecf4ff" stroke-width="1.5"/>
+<path d="M61 25 C44 25 36 37 36 54 V79 C36 96 45 106 62 106 C79 106 88 96 88 79 V54 C88 37 78 25 61 25Z" fill="url(#mouse)" stroke="#fffdf6" stroke-width="2.2"/>
+<path d="M63 27 C76 28 86 39 86 54 V59 H63 V41 Z" fill="url(#orange)"/>
+<path d="M61.5 27 V41 M38 61 H86" fill="none" stroke="#9ca8c4" stroke-width="1.4"/>
+<rect x="58.5" y="37" width="7" height="18" rx="3.5" fill="#9696a4" stroke="#ffffff" stroke-width="1"/>
+<path d="M89 43 H107 Q114 43 114 50 V77 Q114 84 107 84 H89 Q81 84 81 76 V63 L76 57 L81 52 V51 Q81 43 89 43Z" fill="#fdf9f7" stroke="#fff" stroke-width="2"/>
+<circle cx="91" cy="53" r="3.3" fill="#f9b75f"/><circle cx="91" cy="64" r="3.3" fill="#588fd8"/><circle cx="91" cy="75" r="3.3" fill="#abb0c3"/>
+<path d="M98 53 H107 M98 64 H107 M98 75 H107" stroke="#929aaa" stroke-width="3" stroke-linecap="round"/>
+</svg>

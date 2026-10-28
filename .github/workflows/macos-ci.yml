@@ -1,0 +1,30 @@
+name: macOS native build
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+    branches: [main]
+concurrency:
+  group: literight-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  core-and-app:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          brew install xcodegen
+      - name: Test Swift Core
+        run: swift test --package-path LiteRightCore
+      - name: Generate app icons from vector source
+        run: |
+          python3 -m venv .icon-venv
+          .icon-venv/bin/python -m pip install --disable-pip-version-check pillow cairosvg
+          .icon-venv/bin/python tools/export-icons.py
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build native macOS app and Finder extension
+        run: xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug CODE_SIGNING_ALLOWED=NO build
