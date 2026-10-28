@@ -52,7 +52,6 @@ struct MenuBarActions: View {
             openWindow(id: "preferences")
             NSApp.activate(ignoringOtherApps: true)
         }
-        Divider()
         Button("退出 LiteRight") { NSApp.terminate(nil) }
     }
 }
