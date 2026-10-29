@@ -23,7 +23,7 @@ final class FinderSync: FIFinderSync {
 
     private func reloadMonitoredDirectories() {
         let paths = storage.load().monitoredFolderPaths
-        FIFinderSyncController.default().directoryURLs = MonitoredFolders.activeDirectoryURLs(paths)
+        FIFinderSyncController.default().directoryURLs = MonitoredFolders.registrationDirectoryURLs(paths)
     }
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu? {
@@ -56,24 +56,24 @@ final class FinderSync: FIFinderSync {
     @objc private func performAction(_ sender: NSMenuItem) {
         guard let payload = sender.representedObject as? ActionPayload else { return }
         do {
-            switch payload.id {
-            case .newText, .newMarkdown:
-                guard let url = payload.target.directoryURL else { return }
-                _ = try AtomicFileCreator.createFile(in: url, template: payload.id == .newText ? .text : .markdown)
-            case .copyDirectoryPath:
-                guard let url = payload.target.directoryURL else { return }
-                NSPasteboard.general.clearContents()
-                guard NSPasteboard.general.setString(url.path, forType: .string) else { throw LiteRightError.operationFailed("无法复制目录路径。") }
-            case .openInTerminal, .toggleHiddenFiles:
-                let pref = storage.load()
-                let request = OperationRequest(action: payload.id, directoryPath: payload.target.directoryURL?.path, terminalBundleID: pref.preferredTerminal)
-                let store = try RequestStore()
-                try store.save(request)
-                guard let deepLink = URL(string: "lite-right://run?id=\(request.id.uuidString)") else { throw LiteRightError.requestUnavailable }
-                NSWorkspace.shared.open(deepLink)
+            // FinderSync is sandboxed. Never create files or rely on user-file
+            // permissions here; route the action to the native host instead.
+            let pref = storage.load()
+            let request = OperationRequest(
+                action: payload.id,
+                directoryPath: payload.target.directoryURL?.path,
+                terminalBundleID: pref.preferredTerminal
+            )
+            let store = try RequestStore()
+            try store.save(request)
+            guard let deepLink = URL(string: "lite-right://run?id=\(request.id.uuidString)") else {
+                throw LiteRightError.requestUnavailable
+            }
+            guard NSWorkspace.shared.open(deepLink) else {
+                throw LiteRightError.operationFailed("无法启动 LiteRight 主应用。请从应用程序目录打开 LiteRight 后重试。")
             }
         } catch {
-            NSLog("LiteRight action failed: %@", String(describing: error))
+            NSLog("LiteRight Finder action failed: %@", String(describing: error))
             NSSound.beep()
         }
     }

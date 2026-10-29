@@ -12,6 +12,32 @@
 
 Apple 官方说明：[在 Mac 上安全地打开 App](https://support.apple.com/zh-cn/102445)。
 
+## Finder 右键菜单缺失：诊断和手动启用
+
+**开发者必须另外确认 Finder Sync 扩展已注册并启用。** 仅允许应用在「隐私与安全性」中打开，不等于 Finder 已加载 `LiteRightFinderExtension.appex`。
+
+本次 DMG 已附带 `diagnose-finder-sync.sh`：在「应用程序」中安装 LiteRight 后，打开「终端」执行下列诊断命令（默认**只读**，不会修改设置）：
+
+```sh
+bash "/Volumes/LiteRight Developer Preview/diagnose-finder-sync.sh" "/Applications/LiteRight.app"
+```
+
+若诊断显示扩展未注册，可以由开发者**明确选择**执行（此命令注册并请求启用当前登录用户的 Finder 扩展，但不会关闭任何 macOS 安全保护）：
+
+```sh
+bash "/Volumes/LiteRight Developer Preview/diagnose-finder-sync.sh" --enable "/Applications/LiteRight.app"
+```
+
+也可以直接在终端执行：
+
+```sh
+pluginkit -m -vv -i com.wuhunyu.literight.finder
+```
+
+通常以 `+` 开头表示启用，`-` 或 `!` 或完全没有输出均应继续检查。随后前往「系统设置 → 通用 → 登录项与扩展 → Finder 扩展」，确认 LiteRight 已启用；必要时手动重新启动 Finder（Dock 内 Option+右键 Finder → 重新开启）。**不要**认为 `pluginkit` 返回成功就证明菜单真的出现。
+
+安装路径在 `~/Applications` 的用户，请将命令中的 `/Applications/LiteRight.app` 换成实际路径。请先移走旧版本重复副本，否则 LaunchServices/PlugInKit 可能选择旧扩展。安装包采用 ad-hoc 沙盒签名，可以用于本机测试 Finder Sync 注册，但实际五项操作与 App Group 授权仍须按 Issue #3 实机核验。
+
 ## 本包可以验证什么？
 
 可以尝试验证 LiteRight 的应用启动、设置界面、菜单栏图标、界面配置等无需真实共享扩展权限的功能。GitHub Actions 的构建和 GUI 测试是自动化证据，但开发者电脑仍需实际观察。

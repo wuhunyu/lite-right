@@ -14,19 +14,36 @@ final class OperationDispatcher: ObservableObject {
             let req = try store.claim(id: id)
             defer { try? store.complete(id: id) }
             switch req.action {
-            case .openInTerminal:
-                guard let rawPath = req.directoryPath,
-                      let directory = TargetResolver.validatedDirectory(URL(fileURLWithPath: rawPath, isDirectory: true)) else {
-                    throw LiteRightError.invalidDirectory
+            case .newText, .newMarkdown:
+                let directory = try validatedRequestDirectory(req)
+                _ = try AtomicFileCreator.createFile(
+                    in: directory, template: req.action == .newText ? .text : .markdown
+                )
+            case .copyDirectoryPath:
+                let directory = try validatedRequestDirectory(req)
+                NSPasteboard.general.clearContents()
+                guard NSPasteboard.general.setString(directory.path, forType: .string) else {
+                    throw LiteRightError.operationFailed("无法复制目录路径。")
                 }
+            case .openInTerminal:
+                let directory = try validatedRequestDirectory(req)
                 try await TerminalLauncher.openDirectory(directory, preferences: SharedPreferences().load())
             case .toggleHiddenFiles:
                 try await HiddenFilesController.toggle(preferences: SharedPreferences().load())
-            default: throw LiteRightError.unsupportedAction
             }
         } catch {
             let alert = NSAlert(error: error)
             alert.runModal()
         }
+    }
+
+    private func validatedRequestDirectory(_ req: OperationRequest) throws -> URL {
+        guard let rawPath = req.directoryPath,
+              let directory = TargetResolver.validatedDirectory(
+                URL(fileURLWithPath: rawPath, isDirectory: true)
+              ) else {
+            throw LiteRightError.invalidDirectory
+        }
+        return directory
     }
 }

@@ -36,7 +36,8 @@ public final class RequestStore {
         directory.appendingPathComponent("\(id.uuidString).\(status).json")
     }
     public func save(_ request: OperationRequest) throws {
-        guard request.action == .openInTerminal || request.action == .toggleHiddenFiles else { throw LiteRightError.unsupportedAction }
+        // MenuItemID is a closed Codable enum: only the five known actions can be decoded.
+        // Every Finder menu action is dispatched to the native host outside the sandbox.
         let payload = try JSONEncoder().encode(request)
         let pending = url(request.id, "pending")
         let tmp = directory.appendingPathComponent("\(UUID().uuidString).tmp")
@@ -66,8 +67,7 @@ public final class RequestStore {
         do { try FileManager.default.moveItem(at: pending, to: processing) }
         catch { throw LiteRightError.requestAlreadyProcessed }
         let request = try JSONDecoder().decode(OperationRequest.self, from: Data(contentsOf: processing))
-        guard request.schemaVersion == 1, request.id == id,
-              request.action == .openInTerminal || request.action == .toggleHiddenFiles else {
+        guard request.schemaVersion == 1, request.id == id else {
             throw LiteRightError.unsupportedAction
         }
         guard request.createdAt.timeIntervalSinceNow <= 5,

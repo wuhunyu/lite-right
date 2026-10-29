@@ -30,6 +30,11 @@ codesign -d --entitlements :- "$APP" > "$TMP/app-entitlements.xml" 2>/dev/null
 codesign -d --entitlements :- "$EXT" > "$TMP/extension-entitlements.xml" 2>/dev/null
 grep -Fq 'group.com.wuhunyu.literight' "$TMP/app-entitlements.xml"
 grep -Fq 'group.com.wuhunyu.literight' "$TMP/extension-entitlements.xml"
+grep -Fq '<key>com.apple.security.app-sandbox</key>' "$TMP/extension-entitlements.xml"
+if ! grep -A 1 '<key>com.apple.security.app-sandbox</key>' "$TMP/extension-entitlements.xml" | grep -Fq '<true/>'; then
+  echo 'FAIL: Finder extension must have app-sandbox enabled for PlugInKit' >&2
+  exit 1
+fi
 codesign -d --verbose=4 "$APP" > "$TMP/signature.log" 2>&1
 grep -Fq 'Signature=adhoc' "$TMP/signature.log"
 grep -Fq 'TeamIdentifier=not set' "$TMP/signature.log"

@@ -57,11 +57,13 @@ targets:
       path: LiteRightFinderExtension/Info.plist
       properties:
         NSExtension:
+          NSExtensionAttributes: {}
           NSExtensionPointIdentifier: com.apple.FinderSync
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).FinderSync"
     entitlements:
       path: LiteRightFinderExtension/LiteRightFinderExtension.entitlements
       properties:
+        com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
           - group.com.wuhunyu.literight
     settings:
