@@ -63,3 +63,9 @@ GUI 试验 2 项测试均失败，详情 [Issue #4](https://github.com/wuhunyu/l
 | 最终结论（Go / No-Go） | **No-Go，尚无签名实机证据** |
 
 详细步骤和命令：[finder-real-machine-acceptance.md](finder-real-machine-acceptance.md)。不得凭 `pluginkit` 注册成功、`isExtensionEnabled` 读数或 CI 全绿，把上述字段改为“通过”。
+
+## 安装后用户截图反馈（2026-10-29）
+
+用户通过 GitHub Pre-release 安装 LiteRight 后，截图显示原生设置页可打开；在 Finder 的 `~/` 目录空白处及已选中文件夹右键菜单中均**未发现任何 LiteRight 选项**。故目前实际使用结果为 **No-Go**，而非「待验证」或「CI 通过即可以使用」。尚未取得用户本机 `pluginkit -m -vv -i com.wuhunyu.literight.finder` 输出，无法确定是否存在扩展未注册、未启用、加载失败或重复旧版本。
+
+仓库排查发现 2026-10-29 之前的预览包缺少 Finder 扩展 `com.apple.security.app-sandbox` entitlement，以及 `NSExtensionAttributes` 空字典；这两项已在 [PR #8](https://github.com/wuhunyu/lite-right/pull/8) 中实施修复和回归测试。Sandbox 后文件创建应由主应用执行，不再由受限 Finder 扩展直接写用户目录。

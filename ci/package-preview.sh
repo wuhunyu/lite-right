@@ -50,6 +50,9 @@ DMG_STAGING="$TMP/dmg-staging"
 mkdir -p "$DMG_STAGING"
 ditto "$APP" "$DMG_STAGING/LiteRight.app"
 ln -s /Applications "$DMG_STAGING/Applications"
+# Include optional registration diagnostics without automatically changing settings.
+cp "$REPO_ROOT/ci/diagnose-finder-sync.sh" "$DMG_STAGING/diagnose-finder-sync.sh"
+cp "$REPO_ROOT/docs/unsigned-preview.md" "$DMG_STAGING/README-Developer-Preview.md"
 hdiutil create -volname 'LiteRight Developer Preview' \
     -srcfolder "$DMG_STAGING" -format UDZO -ov "$DMG"
 
