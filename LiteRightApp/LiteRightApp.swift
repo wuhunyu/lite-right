@@ -30,6 +30,17 @@ struct LiteRightApp: App {
     }
     #endif
 
+    // SceneBuilder cannot conditionally omit a Scene at runtime.
+    // Keep the scene declaration stable; disable insertion in diagnostic mode.
+    private var menuBarInsertion: Binding<Bool> {
+        #if DEBUG
+        if probeNoMenuBar {
+            return .constant(false)
+        }
+        #endif
+        return model.menuBarVisible
+    }
+
     var body: some Scene {
         Window("LiteRight 设置", id: "preferences") {
             Group {
@@ -52,17 +63,9 @@ struct LiteRightApp: App {
         .defaultSize(width: 760, height: 520)
         .commands { CommandGroup(replacing: .newItem) {} }
 
-        #if DEBUG
-        if !probeNoMenuBar {
-            MenuBarExtra("LiteRight", systemImage: "cursorarrow.click.2", isInserted: model.menuBarVisible) {
-                MenuBarActions()
-            }
-        }
-        #else
-        MenuBarExtra("LiteRight", systemImage: "cursorarrow.click.2", isInserted: model.menuBarVisible) {
+        MenuBarExtra("LiteRight", systemImage: "cursorarrow.click.2", isInserted: menuBarInsertion) {
             MenuBarActions()
         }
-        #endif
     }
 }
 
