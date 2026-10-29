@@ -60,6 +60,38 @@ final class SettingsSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    func testMenuVisibilityPersistsAcrossAppRestart() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launch()
+        defer { app.terminate() }
+
+        let toggleLabel = "显示 新建 Markdown"
+        var toggle = app.switches[toggleLabel]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 20),
+                      "The menu visibility toggle must be accessible")
+
+        let before = toggle.value as? String ?? ""
+        toggle.click()
+        let updated = toggle.value as? String ?? ""
+        XCTAssertNotEqual(updated, before, "Clicking the toggle must change its value")
+
+        // This killed/relaunched process must load the saved preference from disk,
+        // not merely retain an in-memory SwiftUI state or App Group cache.
+        app.terminate()
+        app.launch()
+
+        toggle = app.switches[toggleLabel]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 20))
+        XCTAssertEqual(toggle.value as? String, updated,
+                       "LiteRight menu visibility must survive a real process restart")
+
+        // Avoid leaving the runner's own preferences modified for later tests.
+        if updated != before {
+            toggle.click()
+        }
+    }
+
+    @MainActor
     func testInitialMenuPageContainsAllFiveActions() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launch()
