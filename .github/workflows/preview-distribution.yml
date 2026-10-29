@@ -44,6 +44,8 @@ jobs:
           xcodegen generate
       - name: Verify generated app/extension metadata and App Group
         run: swift ci/verify-xcodegen-metadata.swift
+      - name: Test Finder Sync diagnostics CLI
+        run: bash ci/test-finder-sync-diagnostics.sh
       - name: Build Release app without an Apple Developer Team
         run: |
           set -euo pipefail
