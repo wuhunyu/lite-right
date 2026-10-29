@@ -20,6 +20,14 @@ final class PreferencesTests: XCTestCase {
         defaults.set(Data("broken".utf8), forKey: "generalPreferences")
         XCTAssertEqual(store.load(), .default)
     }
+    func testSharedPreferencesReportsDeniedSynchronize() throws {
+        let suite = "LiteRightRejectedGroup-\(UUID().uuidString)"
+        let denied = RejectingUserDefaults(suiteName: suite)!
+        defer { denied.removePersistentDomain(forName: suite) }
+        XCTAssertThrowsError(try SharedPreferences(userDefaults: denied).save(.default),
+                             "A cfprefsd-rejected write must not appear successful")
+    }
+
     func testDuplicateAndMissingMenuIdsNormalized() throws {
         var prefs = GeneralPreferences.default
         prefs.orderedMenuItems = [MenuItemPreference(id: .newText, isVisible: false), MenuItemPreference(id: .newText, isVisible: true)]
@@ -27,4 +35,8 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(clean.orderedMenuItems.map(\.id), MenuItemID.allCases)
         XCTAssertFalse(clean.orderedMenuItems[0].isVisible)
     }
+}
+
+private final class RejectingUserDefaults: UserDefaults {
+    override func synchronize() -> Bool { false }
 }

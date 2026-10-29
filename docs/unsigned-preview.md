@@ -38,6 +38,14 @@ pluginkit -m -vv -i com.wuhunyu.literight.finder
 
 安装路径在 `~/Applications` 的用户，请将命令中的 `/Applications/LiteRight.app` 换成实际路径。请先移走旧版本重复副本，否则 LaunchServices/PlugInKit 可能选择旧扩展。安装包采用 ad-hoc 沙盒签名，可以用于本机测试 Finder Sync 注册，但实际五项操作与 App Group 授权仍须按 Issue #3 实机核验。
 
+## 设置无法保存的已知问题与修复范围
+
+2026-10-29 实机确认：此前的 ad-hoc 测试版尝试向 `group.com.wuhunyu.literight` 保存菜单设置时，macOS `cfprefsd` 记录 `rejecting write ... requires user-preference-write or file-write-data sandbox access`。原代码忽略 `UserDefaults.synchronize()` 返回的失败，因此“勾选变化后重启恢复默认”。
+
+新的主应用将所有用户设置**独立保存**至 `~/Library/Application Support/LiteRight/preferences.json`（原子写入、失败显示错误），再尝试同步到 App Group。如果 macOS 仍拒绝 App Group 写入，会显示“本机设置已保存，但 Finder 扩展共享配置同步失败”，而不是丢失本机设置。可在更改菜单勾选后运行 `ls -l "$HOME/Library/Application Support/LiteRight/preferences.json"`，随后退出并重新打开程序验证持续保存。
+
+**此修复只解决主应用本机设置持久化，不等于 Finder Sync 在 ad-hoc 构建中已获得 App Group 读写许可。** 真正的 Finder 右键菜单和操作请求仍需单独签名/跨进程验收，详见 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3)。
+
 ## 本包可以验证什么？
 
 可以尝试验证 LiteRight 的应用启动、设置界面、菜单栏图标、界面配置等无需真实共享扩展权限的功能。GitHub Actions 的构建和 GUI 测试是自动化证据，但开发者电脑仍需实际观察。

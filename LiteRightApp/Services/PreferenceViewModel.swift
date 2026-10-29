@@ -6,8 +6,18 @@ import LiteRightCore
 final class PreferenceViewModel: ObservableObject {
     @Published private(set) var value: GeneralPreferences
     @Published var lastError: String?
-    private let storage = SharedPreferences()
-    init() { value = storage.load() }
+    @Published private(set) var sharedSyncWarning: String?
+    private let storage = HostPreferencesStore()
+    private let sharedStorage = SharedPreferences()
+
+    init() {
+        do {
+            value = try storage.load()
+        } catch {
+            value = .default
+            lastError = "无法读取已保存的本机设置：\(error.localizedDescription)"
+        }
+    }
 
     func update(_ change: (inout GeneralPreferences) -> Void) {
         var updated = value
@@ -15,10 +25,20 @@ final class PreferenceViewModel: ObservableObject {
         updated = updated.normalized()
         let monitoredRootsChanged = updated.monitoredFolderPaths != value.monitoredFolderPaths
         do {
+            // Commit canonical user settings independently of App Group privileges.
+            // Never roll back a successful local write because Finder sharing is denied.
             try storage.save(updated)
             value = updated
-            if monitoredRootsChanged { refreshMonitoredDirectories() }
-        } catch { lastError = error.localizedDescription }
+            do {
+                try sharedStorage.save(updated)
+                sharedSyncWarning = nil
+                if monitoredRootsChanged { refreshMonitoredDirectories() }
+            } catch {
+                sharedSyncWarning = "设置已保存在本机，但 Finder 扩展共享配置同步失败：\(error.localizedDescription)"
+            }
+        } catch {
+            lastError = error.localizedDescription
+        }
     }
 
     func refreshMonitoredDirectories() {

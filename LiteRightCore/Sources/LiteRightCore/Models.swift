@@ -137,8 +137,13 @@ public final class SharedPreferences: @unchecked Sendable {
     }
     public func save(_ value: GeneralPreferences) throws {
         defaults.set(try JSONEncoder().encode(value.normalized()), forKey: key)
-        // Persist before a cross-process Finder refresh notification is posted.
-        _ = defaults.synchronize()
+        // A UserDefaults suite can exist while cfprefsd rejects its App Group
+        // writes (e.g. ad-hoc macOS previews). Never report a false success.
+        guard defaults.synchronize() else {
+            throw LiteRightError.operationFailed(
+                "App Group 共享配置写入被 macOS 拒绝。主应用设置可单独保存，但 Finder 扩展无法同步。"
+            )
+        }
     }
 }
 

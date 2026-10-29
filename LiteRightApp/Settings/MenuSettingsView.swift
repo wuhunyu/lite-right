@@ -23,7 +23,9 @@ struct MenuSettingsView: View {
                                 }
                             }}
                         ))
-                        .labelsHidden().accessibilityLabel("显示 \(entry.id.title)")
+                        .labelsHidden()
+                        .accessibilityLabel("显示 \(entry.id.title)")
+                        .accessibilityIdentifier("menu-visibility-\(entry.id.rawValue)")
                     }
                     .padding(.vertical, 5)
                 }

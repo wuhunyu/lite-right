@@ -13,11 +13,15 @@ struct PermissionsView: View {
         Form {
             Section("Finder 扩展") {
                 LabeledContent("系统报告状态", value: finderExtensionEnabled ? "已启用（仍需实测右键菜单）" : "未启用或无法确认")
-                LabeledContent("主应用 App Group", value: appGroupAvailable ? "共享容器可访问" : "共享容器不可用，请检查签名")
+                LabeledContent("主应用 App Group 容器", value: appGroupAvailable ? "可定位（不代表共享偏好可写）" : "不可访问，请检查签名")
+                LabeledContent("Finder 设置同步", value: model.sharedSyncWarning == nil ? "尚未验证或上次成功" : "被系统拒绝（本机设置仍可保存）")
+                if let warning = model.sharedSyncWarning {
+                    Text(warning).font(.caption).foregroundStyle(.orange)
+                }
                 Button("重新检测扩展状态") { refreshFinderState() }
                 Button("打开扩展设置") { FIFinderSyncController.showExtensionManagementInterface() }
                 Button("打开系统扩展设置（备用）") { openSettings("x-apple.systempreferences:com.apple.ExtensionsPreferences") }
-                Text("系统报告已启用，并不代表 Finder 的右键菜单已通过实机验证。")
+                Text("系统报告已启用、共享容器路径存在，都不代表 Finder 扩展能写入共享偏好或展示右键菜单。")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("菜单只在已登记的监控目录及子目录内出现；可在通用设置中添加目录。")
                     .font(.caption).foregroundStyle(.secondary)
