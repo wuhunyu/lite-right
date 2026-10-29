@@ -23,7 +23,7 @@ final class FinderSync: FIFinderSync {
 
     private func reloadMonitoredDirectories() {
         let paths = storage.load().monitoredFolderPaths
-        FIFinderSyncController.default().directoryURLs = MonitoredFolders.activeDirectoryURLs(paths)
+        FIFinderSyncController.default().directoryURLs = MonitoredFolders.registrationDirectoryURLs(paths)
     }
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu? {

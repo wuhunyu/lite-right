@@ -1,5 +1,16 @@
 import Foundation
 
+/// Resolve the *login account* home, not NSHomeDirectory() which points to
+/// the application's container when Finder Sync is sandboxed.
+public enum UserHomeDirectory {
+    public static func current() -> String {
+        let user = NSUserName()
+        return FileManager.default.homeDirectory(forUser: user)?.standardizedFileURL.path
+            ?? NSHomeDirectoryForUser(user)
+            ?? ""
+    }
+}
+
 public enum MenuItemID: String, CaseIterable, Codable, Sendable, Identifiable {
     case newText, newMarkdown, toggleHiddenFiles, openInTerminal, copyDirectoryPath
     public var id: String { rawValue }
@@ -68,7 +79,7 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         showMenuBarIcon: true,
         showDockIcon: false,
         useAccessibilityToggleForHiddenFiles: false,
-        monitoredFolderPaths: [NSHomeDirectory()]
+        monitoredFolderPaths: [UserHomeDirectory.current()].filter { !$0.isEmpty }
     )
 
     // Older preference snapshots and malformed orders are normalized without losing visibility.
@@ -107,7 +118,7 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         showMenuBarIcon = try values.decodeIfPresent(Bool.self, forKey: .showMenuBarIcon) ?? true
         showDockIcon = try values.decodeIfPresent(Bool.self, forKey: .showDockIcon) ?? false
         useAccessibilityToggleForHiddenFiles = try values.decodeIfPresent(Bool.self, forKey: .useAccessibilityToggleForHiddenFiles) ?? false
-        monitoredFolderPaths = try values.decodeIfPresent([String].self, forKey: .monitoredFolderPaths) ?? [NSHomeDirectory()]
+        monitoredFolderPaths = try values.decodeIfPresent([String].self, forKey: .monitoredFolderPaths) ?? [UserHomeDirectory.current()].filter { !$0.isEmpty }
     }
 }
 

@@ -18,6 +18,20 @@ public enum MonitoredFolders {
         return result
     }
 
+    /// Finder Sync can be sandboxed and may not have permission to stat the
+    /// user's home or an external volume. Register configured URLs without a
+    /// filesystem read; Finder will observe reachable monitored subtrees.
+    public static func registrationDirectoryURLs(_ paths: [String]) -> Set<URL> {
+        let configured = Set(normalize(paths).map {
+            URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL
+        })
+        return Set(configured.filter { candidate in
+            !configured.contains { ancestor in
+                ancestor != candidate && candidate.path.hasPrefix(ancestor.path + "/")
+            }
+        })
+    }
+
     /// The Finder extension registers only existing, readable directories.
     /// An ancestor watch already covers its descendants; register each active root once.
     public static func activeDirectoryURLs(_ paths: [String]) -> Set<URL> {
