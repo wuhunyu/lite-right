@@ -33,6 +33,8 @@ jobs:
           .icon-venv/bin/python tools/export-icons.py
       - name: Generate Xcode project
         run: xcodegen generate
+      - name: Verify generated app/extension metadata and App Group
+        run: swift ci/verify-xcodegen-metadata.swift
       - name: Build app, extension, and XCTest runner for testing
         run: |
           set -o pipefail
@@ -91,6 +93,8 @@ jobs:
           .icon-venv/bin/python -m pip install --disable-pip-version-check pillow cairosvg
           .icon-venv/bin/python tools/export-icons.py
           xcodegen generate
+      - name: Verify generated app/extension metadata and App Group
+        run: swift ci/verify-xcodegen-metadata.swift
       - name: Capture graphics session diagnostics
         run: |
           sw_vers | tee gui-environment.log

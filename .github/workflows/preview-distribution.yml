@@ -42,6 +42,8 @@ jobs:
           .icon-venv/bin/python -m pip install --disable-pip-version-check pillow cairosvg
           .icon-venv/bin/python tools/export-icons.py
           xcodegen generate
+      - name: Verify generated app/extension metadata and App Group
+        run: swift ci/verify-xcodegen-metadata.swift
       - name: Build Release app without an Apple Developer Team
         run: |
           set -euo pipefail

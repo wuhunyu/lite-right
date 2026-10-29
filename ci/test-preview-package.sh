@@ -24,6 +24,12 @@ echo '=== Extracted ZIP app Info.plist LSUIElement ==='
 swift ci/verify-app-bundle.swift "$APP"
 codesign --verify --strict --deep --verbose=2 "$APP"
 codesign --verify --strict --verbose=2 "$EXT"
+# Verify that the ad-hoc signature also embeds both App Group claims;
+# these entitlements are NOT proof of valid Developer Team authorization.
+codesign -d --entitlements :- "$APP" > "$TMP/app-entitlements.xml" 2>/dev/null
+codesign -d --entitlements :- "$EXT" > "$TMP/extension-entitlements.xml" 2>/dev/null
+grep -Fq 'group.com.wuhunyu.literight' "$TMP/app-entitlements.xml"
+grep -Fq 'group.com.wuhunyu.literight' "$TMP/extension-entitlements.xml"
 codesign -d --verbose=4 "$APP" > "$TMP/signature.log" 2>&1
 grep -Fq 'Signature=adhoc' "$TMP/signature.log"
 grep -Fq 'TeamIdentifier=not set' "$TMP/signature.log"
