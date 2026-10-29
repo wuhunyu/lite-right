@@ -7,7 +7,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     private let statusBar = StatusBarController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let preferences = SharedPreferences().load()
+        let preferences = (try? HostPreferencesStore().load()) ?? .default
         NSApp.setActivationPolicy(preferences.showDockIcon ? .regular : .accessory)
         setMenuBarVisible(preferences.showMenuBarIcon)
     }

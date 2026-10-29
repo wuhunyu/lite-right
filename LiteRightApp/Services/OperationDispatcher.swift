@@ -27,9 +27,11 @@ final class OperationDispatcher: ObservableObject {
                 }
             case .openInTerminal:
                 let directory = try validatedRequestDirectory(req)
-                try await TerminalLauncher.openDirectory(directory, preferences: SharedPreferences().load())
+                let preferences = try HostPreferencesStore().load()
+                try await TerminalLauncher.openDirectory(directory, preferences: preferences)
             case .toggleHiddenFiles:
-                try await HiddenFilesController.toggle(preferences: SharedPreferences().load())
+                let preferences = try HostPreferencesStore().load()
+                try await HiddenFilesController.toggle(preferences: preferences)
             }
         } catch {
             let alert = NSAlert(error: error)
