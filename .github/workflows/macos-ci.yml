@@ -43,6 +43,19 @@ jobs:
       - name: Inspect the actual app and embedded Finder extension
         run: |
           swift ci/verify-app-bundle.swift "$RUNNER_TEMP/LiteRightDerived/Build/Products/Debug/LiteRight.app" | tee bundle-check.log
+      - name: Verify signed-only gate rejects unsigned CI app
+        run: |
+          set -o pipefail
+          APP="$RUNNER_TEMP/LiteRightDerived/Build/Products/Debug/LiteRight.app"
+          status=0
+          swift ci/verify-signed-app.swift "$APP" > signed-gate-negative.log 2>&1 || status=$?
+          if [ "$status" -eq 0 ]; then
+            cat signed-gate-negative.log
+            echo 'Unsigned CI bundle unexpectedly passed signed acceptance gate' >&2
+            exit 1
+          fi
+          grep -Fq 'SIGNATURE_VERIFICATION_FAILURE:' signed-gate-negative.log
+          echo 'Unsigned build correctly rejected by signed-machine acceptance gate.'
       - name: Required checks summary
         if: success()
         run: |
@@ -50,6 +63,7 @@ jobs:
           echo '- Real filesystem and Swift unit tests completed successfully.' >> "$GITHUB_STEP_SUMMARY"
           echo '- App, Finder extension and UI-test runner compiled.' >> "$GITHUB_STEP_SUMMARY"
           echo '- Main bundle and embedded extension structure validated.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Signed-only acceptance gate correctly rejects unsigned CI apps.' >> "$GITHUB_STEP_SUMMARY"
           echo '- Finder registration and interactive right-click behavior are **not** covered here.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
@@ -59,6 +73,7 @@ jobs:
             swift-test.log
             xcode-build.log
             bundle-check.log
+            signed-gate-negative.log
           if-no-files-found: warn
           retention-days: 14
   gui-experimental:

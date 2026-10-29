@@ -55,3 +55,13 @@ xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug -
 - 使用原生 AppKit `NSStatusItem` 替换 SwiftUI `MenuBarExtra`，保留原生菜单项、图标显隐和 SwiftUI 设置窗口。
 - 修复后 [Run #40806618329](https://github.com/wuhunyu/lite-right/actions/runs/40806618329)：Required 全通过；XCUITest **5/5 通过、0 失败**，Experimental job 也显示 success。
 - 当前 GUI job 仍使用 `continue-on-error`，后续须评估 CI 稳定性；这组通过结果**不等于 Finder 菜单和权限已验收**。正式发布仍受 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3) 阻断。
+
+## Issue #3 的新增自动化（2026-10-29）
+
+- SwiftPM 新增根目录规范化与真实文件系统监控测试：绝对路径去重、`/` 排除、嵌套根目录、离线卷路径保留、Unicode 目录。
+- SwiftPM 新增 Finder 上下文目录解析测试：container/items/sidebar/toolbar，选中项父目录、多选不一致、搜索结果项路径。
+- XCUITest 覆盖「通用」设置中的「添加监控目录」按钮；不自动弹出系统文件选择框，不写入 CI Runner 的用户配置。
+- `ci/verify-signed-app.swift` 属于**实机签名验收**：验证 App 与 Finder appex 都经过有效签名、TeamIdentifier 一致、App Group entitlement 一致。CI 仅做反向测试（未签名 App 必须失败），绝不冒充已具备真实 Apple Developer 签名。
+- UI 显示 `FIFinderSyncController.isExtensionEnabled` 与主应用 App Group 容器可访问情况仅作诊断；Finder 实际右键操作另填 [P0 矩阵](p0-matrix.md)。
+
+按 [Finder Sync 签名安装与实机验收指南](finder-real-machine-acceptance.md) 执行含 Apple Developer Team 的本地签名构建及交互测试。
