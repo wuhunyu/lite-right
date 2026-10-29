@@ -32,20 +32,22 @@ struct LiteRightApp: App {
 
     var body: some Scene {
         Window("LiteRight 设置", id: "preferences") {
-            #if DEBUG
-            if probeMinimalWindow {
-                Text("LiteRight Startup Probe")
-            } else {
-                SettingsRootView().environmentObject(model)
-            }
-            #else
-            SettingsRootView().environmentObject(model)
-            #endif
-                .frame(minWidth: 640, minHeight: 420)
-                .onOpenURL { url in Task { await dispatcher.handleIncomingURL(url) } }
-                .onChange(of: model.value.showDockIcon) { _, visible in
-                    NSApp.setActivationPolicy(visible ? .regular : .accessory)
+            Group {
+                #if DEBUG
+                if probeMinimalWindow {
+                    Text("LiteRight Startup Probe")
+                } else {
+                    SettingsRootView().environmentObject(model)
                 }
+                #else
+                SettingsRootView().environmentObject(model)
+                #endif
+            }
+            .frame(minWidth: 640, minHeight: 420)
+            .onOpenURL { url in Task { await dispatcher.handleIncomingURL(url) } }
+            .onChange(of: model.value.showDockIcon) { _, visible in
+                NSApp.setActivationPolicy(visible ? .regular : .accessory)
+            }
         }
         .defaultSize(width: 760, height: 520)
         .commands { CommandGroup(replacing: .newItem) {} }
