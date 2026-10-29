@@ -62,7 +62,7 @@ final class FinderSync: FIFinderSync {
             selectedItemURLs: controller.selectedItemURLs()
         )
         let pref = storage.load()
-        logger.notice("menu_callback kind=\(menuKind.rawValue) selection=\(controller.selectedItemURLs()?.count ?? 0) target_available=\(target.directoryURL != nil) visible_count=\(pref.orderedMenuItems.filter(\\.isVisible).count)")
+        logger.notice("menu_callback kind=\(menuKind.rawValue) selection=\(controller.selectedItemURLs()?.count ?? 0) target_available=\(target.directoryURL != nil) visible_count=\(pref.orderedMenuItems.filter(\.isVisible).count)")
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
             let id = preference.id
