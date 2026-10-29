@@ -43,6 +43,12 @@ GitHub Actions 在 macOS 27 Runner 执行真实磁盘集成测试、编译应用
 
 **启动崩溃已修复：** [Issue #4](https://github.com/wuhunyu/lite-right/issues/4) 中由 SwiftUI `MenuBarExtra` 引发的 macOS 27 启动问题已改由原生 AppKit `NSStatusItem` 实现菜单栏，2026-10-29 的 [CI #40806618329](https://github.com/wuhunyu/lite-right/actions/runs/40806618329) 中 Required 检查和 **5/5 原生 GUI 测试全部通过**。但受托管 CI 环境限制，**Finder 右键菜单、系统授权与签名安装仍未通过实机验收**，详见 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3)。
 
+## 下载开发者测试安装包（未公证）
+
+GitHub Actions 的独立工作流 **LiteRight macOS unnotarized developer preview** 会生成适用于 macOS 27 ARM64 的 `.dmg`、`.zip` 和 `SHA256SUMS.txt`，普通 main 提交及手动触发提供 Actions Artifact；明确的 `preview-v*` 标签会发布 GitHub Pre-release。安装包是无 Apple Developer 身份的 ad-hoc 签名构建，**不是无签名、不是 Apple 公证**。
+
+请先校验 SHA-256 并确认下载来源，然后将应用拖入「应用程序」。若系统阻止首次打开，可在确认可信后前往「系统设置 → 隐私与安全性 → 仍要打开」。**手动放行不会赋予 Finder Sync/App Group 额外权限**，不代表 Issue #3 已通过。完整说明见 [开发者预览安装与限制](docs/unsigned-preview.md)。
+
 ## Issue #3 签名实机验收
 
 Finder Sync 的右键菜单作用域由已登记监控目录决定，扩展无法无条件覆盖所有 Finder 位置。动态监控目录与右键目标判定已经纳入 macOS 自动化测试；签名、公证和真实 Finder 菜单仍需要实机验证。

@@ -1,3 +1,5 @@
+> 注：GitHub Actions 生成的 [ad-hoc 未公证开发者测试安装包](unsigned-preview.md) 可供开发者验证主应用启动和设置，但不能替代本指南所需的相同 Apple Developer Team 签名、App Group 授权和真实 Finder 右键交互证据。
+
 # LiteRight / Issue #3 — macOS 27 签名 Finder Sync 实机验收
 
 > 当前状态：**No-Go**。本文帮助搭建和记录可重复的签名实机测试；已通过的 GitHub Actions 不代表 Finder 菜单可用。

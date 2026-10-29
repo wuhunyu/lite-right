@@ -1,0 +1,155 @@
+name: LiteRight macOS unnotarized developer preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/preview-distribution.yml'
+      - 'ci/**'
+      - 'project.yml'
+      - 'LiteRightApp/**'
+      - 'LiteRightFinderExtension/**'
+      - 'LiteRightCore/**'
+  push:
+    branches: [main]
+    tags: ['preview-v*']
+  workflow_dispatch:
+
+concurrency:
+  group: literight-preview-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  package-preview:
+    name: Build and inspect unnotarized arm64 ZIP and DMG
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+          brew install xcodegen
+      - name: Build assets and generate project
+        run: |
+          set -euo pipefail
+          python3 -m venv .icon-venv
+          .icon-venv/bin/python -m pip install --disable-pip-version-check pillow cairosvg
+          .icon-venv/bin/python tools/export-icons.py
+          xcodegen generate
+      - name: Verify generated app/extension metadata and App Group
+        run: swift ci/verify-xcodegen-metadata.swift
+      - name: Build Release app without an Apple Developer Team
+        run: |
+          set -euo pipefail
+          xcodebuild -project LiteRight.xcodeproj -scheme LiteRight \
+            -configuration Release -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/LiteRightPreviewDerived" \
+            CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            build 2>&1 | tee preview-build.log
+      - name: Verify original Release app bundle structure before packaging
+        run: |
+          swift ci/verify-app-bundle.swift             "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app"
+      - name: Verify package creation rejects missing app
+        run: |
+          set -euo pipefail
+          status=0
+          bash ci/package-preview.sh "$RUNNER_TEMP/definitely-missing.app" \
+            "$RUNNER_TEMP/should-not-package" invalid \
+            > preview-negative.log 2>&1 || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo 'FAIL: packager accepted a missing app' >&2
+            exit 1
+          fi
+          cat preview-negative.log
+          grep -Fq 'ERROR: LiteRight.app not found' preview-negative.log
+      - name: Generate ad-hoc preview ZIP and DMG
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            label="$GITHUB_REF_NAME"
+          else
+            label="preview-$(git rev-parse --short=12 HEAD)"
+          fi
+          echo "PACKAGE_LABEL=$label" >> "$GITHUB_ENV"
+          bash ci/package-preview.sh \
+            "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app" \
+            "$GITHUB_WORKSPACE/dist" "$label"
+      - name: Inspect source Release plist before packaging
+        run: |
+          set -euo pipefail
+          /usr/bin/plutil -p "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app/Contents/Info.plist" | grep -E 'LSUIElement|CFBundleIdentifier|CFBundleExecutable' || true
+          /usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app/Contents/Info.plist" || true
+      - name: Inspect package contents and signature boundaries
+        run: |
+          set -euo pipefail
+          bash ci/test-preview-package.sh "$GITHUB_WORKSPACE/dist" "$PACKAGE_LABEL" \
+            2>&1 | tee preview-verification.log
+      - name: Publish checksum and explicit preview warning
+        run: |
+          echo '### LiteRight developer preview installer' >> "$GITHUB_STEP_SUMMARY"
+          echo '- DMG and ZIP contain an **ad-hoc signed** arm64 app; **no Developer ID / notarization**.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Finder Sync/App Group functionality remains unverified and can require team-authorized signing.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Install at your own risk after verifying the hash; see docs/unsigned-preview.md.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: LiteRight-untrusted-preview-macos-arm64
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: LiteRight-preview-failure-logs
+          path: |
+            preview-build.log
+            preview-negative.log
+            preview-verification.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  release-preview:
+    name: Publish explicitly marked prerelease
+    needs: package-preview
+    if: >-
+      (github.event_name == 'push' &&
+       startsWith(github.ref, 'refs/tags/preview-v')) ||
+      (github.event_name == 'push' &&
+       github.ref == 'refs/heads/main' &&
+       contains(github.event.head_commit.message, '[publish-preview]'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: LiteRight-untrusted-preview-macos-arm64
+          path: dist
+      - name: Create a GitHub prerelease with ZIP and DMG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/preview-v* ]]; then
+            version="$GITHUB_REF_NAME"
+          else
+            version="preview-ci-$(printf '%s' "$GITHUB_SHA" | cut -c1-12)"
+          fi
+          gh release create "$version" \
+            dist/*.zip dist/*.dmg dist/SHA256SUMS.txt \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "LiteRight $version — untrusted developer preview" \
+            --notes-file docs/unsigned-preview.md
+          echo "Developer preview published: $version" >> "$GITHUB_STEP_SUMMARY"
