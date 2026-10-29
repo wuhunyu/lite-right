@@ -1,16 +1,25 @@
 import AppKit
 import SwiftUI
 import ApplicationServices
+import FinderSync
+import LiteRightCore
 
 struct PermissionsView: View {
     @EnvironmentObject private var model: PreferenceViewModel
+    @State private var finderExtensionEnabled = false
+    @State private var appGroupAvailable = false
 
     var body: some View {
         Form {
             Section("Finder 扩展") {
-                LabeledContent("状态", value: "请在系统设置中确认（无法可靠自动读取）")
-                Button("打开扩展设置") { openSettings("x-apple.systempreferences:com.apple.ExtensionsPreferences") }
-                Text("菜单可用范围受到 Finder Sync 监控目录和系统规则限制。")
+                LabeledContent("系统报告状态", value: finderExtensionEnabled ? "已启用（仍需实测右键菜单）" : "未启用或无法确认")
+                LabeledContent("主应用 App Group", value: appGroupAvailable ? "共享容器可访问" : "共享容器不可用，请检查签名")
+                Button("重新检测扩展状态") { refreshFinderState() }
+                Button("打开扩展设置") { FIFinderSyncController.showExtensionManagementInterface() }
+                Button("打开系统扩展设置（备用）") { openSettings("x-apple.systempreferences:com.apple.ExtensionsPreferences") }
+                Text("系统报告已启用，并不代表 Finder 的右键菜单已通过实机验证。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("菜单只在已登记的监控目录及子目录内出现；可在通用设置中添加目录。")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("终端自动化") {
@@ -27,8 +36,18 @@ struct PermissionsView: View {
                 Text("默认方式使用 Finder 偏好设置，只有确认后才会重新启动 Finder。")
                     .font(.caption).foregroundStyle(.secondary)
             }
-        }.formStyle(.grouped).padding(14)
+        }
+        .formStyle(.grouped).padding(14)
+        .onAppear { refreshFinderState() }
     }
+
+    private func refreshFinderState() {
+        finderExtensionEnabled = FIFinderSyncController.isExtensionEnabled
+        appGroupAvailable = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: SharedPreferences.suiteName
+        ) != nil
+    }
+
     private func openSettings(_ path: String) {
         guard let url = URL(string: path) else { return }
         NSWorkspace.shared.open(url)

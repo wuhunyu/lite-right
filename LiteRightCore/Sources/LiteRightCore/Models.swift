@@ -126,6 +126,8 @@ public final class SharedPreferences: @unchecked Sendable {
     }
     public func save(_ value: GeneralPreferences) throws {
         defaults.set(try JSONEncoder().encode(value.normalized()), forKey: key)
+        // Persist before a cross-process Finder refresh notification is posted.
+        _ = defaults.synchronize()
     }
 }
 
