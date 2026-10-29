@@ -38,6 +38,8 @@ do {
                 "XcodeGen preserves Finder Sync extension point")
     try require((finder?["NSExtensionPrincipalClass"] as? String ?? "").contains("FinderSync"),
                 "XcodeGen preserves Finder Sync entry class")
+    try require(finder?["NSExtensionAttributes"] is [String: Any],
+                "Finder Sync extension must have NSExtensionAttributes dictionary")
 
     let appGroups = appEntitlements["com.apple.security.application-groups"] as? [String] ?? []
     let extensionGroups = extensionEntitlements["com.apple.security.application-groups"] as? [String] ?? []
@@ -45,6 +47,8 @@ do {
                 "XcodeGen preserves App Group entitlement in host")
     try require(extensionGroups == appGroups,
                 "XcodeGen preserves App Group entitlement in Finder extension")
+    try require(extensionEntitlements["com.apple.security.app-sandbox"] as? Bool == true,
+                "Finder Sync extension must be sandboxed for PlugInKit registration")
     print("Generated metadata verified; signature and actual Finder authorization require separate tests.")
 } catch {
     fputs("GENERATED_METADATA_FAILURE: \(error)\n", stderr)
