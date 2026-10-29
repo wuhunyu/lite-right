@@ -77,7 +77,7 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         var seen = Set<MenuItemID>()
         copy.orderedMenuItems = orderedMenuItems.filter { seen.insert($0.id).inserted }
         copy.orderedMenuItems += MenuItemID.allCases.filter { !seen.contains($0) }.map { .init(id: $0, isVisible: true) }
-        copy.monitoredFolderPaths = Array(Set(monitoredFolderPaths.filter { $0.hasPrefix("/") })).sorted()
+        copy.monitoredFolderPaths = MonitoredFolders.normalize(monitoredFolderPaths)
         return copy
     }
 
