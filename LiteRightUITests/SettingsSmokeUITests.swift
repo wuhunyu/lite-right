@@ -6,6 +6,39 @@ final class SettingsSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    // Startup isolation probes are DEBUG-only. Each launch changes exactly one
+    // scene or window-content variable relative to the existing failing tests.
+    // These diagnose app startup, not Finder authorization or menu interaction.
+    @MainActor
+    func testProbeMinimalWindowWithoutMenuBar() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
+                      "A bare Window scene must launch without MenuBarExtra or settings content")
+    }
+
+    @MainActor
+    func testProbeRealSettingsWithoutMenuBar() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["右键菜单"].firstMatch.waitForExistence(timeout: 20),
+                      "Real settings should launch without MenuBarExtra")
+    }
+
+    @MainActor
+    func testProbeMinimalWindowWithMenuBar() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-minimal-window"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
+                      "A bare settings window should launch alongside MenuBarExtra")
+    }
+
     @MainActor
     func testSettingsWindowIsActuallyLaunched() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
