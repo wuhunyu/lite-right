@@ -47,3 +47,11 @@ xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Debug -
 - `pluginkit -a` 命令成功返回，**不等同于 Finder 右键菜单出现**。
 - 启动崩溃追踪：[Issue #4](https://github.com/wuhunyu/lite-right/issues/4)；签名 Finder 真机测试：[Issue #3](https://github.com/wuhunyu/lite-right/issues/3)。
 - 因测试目前尚不稳定，GUI job 使用 `continue-on-error`，**工作流绿色不等于 GUI 绿色**，应查看两个 job 的独立结论。P0 仍为 No-Go。
+
+## 2026-10-29 启动崩溃修复与复测
+
+- 解析 2026-10-28 XCUITest .xcresult 的崩溃报告：主线程发生 SwiftUI AppGraph/窗口/菜单图更新递归，触及栈保护区（SIGSEGV）。
+- Debug 隔离实验（[Run #40805705752](https://github.com/wuhunyu/lite-right/actions/runs/40805705752)）：禁用菜单栏插入的最小窗口与完整设置窗口均通过；启用 SwiftUI `MenuBarExtra` 的两个启动测试失败，原始设置窗口测试崩溃。
+- 使用原生 AppKit `NSStatusItem` 替换 SwiftUI `MenuBarExtra`，保留原生菜单项、图标显隐和 SwiftUI 设置窗口。
+- 修复后 [Run #40806618329](https://github.com/wuhunyu/lite-right/actions/runs/40806618329)：Required 全通过；XCUITest **5/5 通过、0 失败**，Experimental job 也显示 success。
+- 当前 GUI job 仍使用 `continue-on-error`，后续须评估 CI 稳定性；这组通过结果**不等于 Finder 菜单和权限已验收**。正式发布仍受 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3) 阻断。
