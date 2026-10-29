@@ -23,14 +23,21 @@ targets:
           - "LiteRight.entitlements"
     info:
       path: LiteRightApp/Resources/AppInfo.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - lite-right
+        LSUIElement: true
+        NSAppleEventsUsageDescription: "LiteRight 需要在用户点击操作后打开新的终端窗口。"
     entitlements:
       path: LiteRightApp/LiteRight.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.wuhunyu.literight
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wuhunyu.literight
         INFOPLIST_KEY_CFBundleDisplayName: LiteRight
-        GENERATE_INFOPLIST_FILE: "YES"
-        INFOPLIST_KEY_LSUIElement: "YES"
         MARKETING_VERSION: 0.1.0
         CURRENT_PROJECT_VERSION: 1
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -48,8 +55,15 @@ targets:
           - "LiteRightFinderExtension.entitlements"
     info:
       path: LiteRightFinderExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.FinderSync
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).FinderSync"
     entitlements:
       path: LiteRightFinderExtension/LiteRightFinderExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.wuhunyu.literight
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wuhunyu.literight.finder
