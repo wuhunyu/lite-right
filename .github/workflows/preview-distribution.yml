@@ -50,6 +50,9 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/LiteRightPreviewDerived" \
             CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
             build 2>&1 | tee preview-build.log
+      - name: Verify original Release app bundle structure before packaging
+        run: |
+          swift ci/verify-app-bundle.swift             "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app"
       - name: Verify package creation rejects missing app
         run: |
           set -euo pipefail
