@@ -29,3 +29,9 @@
 
 GitHub Actions `xcode-27` 已通过 27 项真实文件系统/Swift 单测和完整应用包/扩展编译，未完成 Finder 实际右键菜单验收。
 GUI 试验 2 项测试均失败，详情 [Issue #4](https://github.com/wuhunyu/lite-right/issues/4)；签名实机验收详见 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3)。
+
+## 实测补充（2026-10-29）
+
+[CI #40806618329](https://github.com/wuhunyu/lite-right/actions/runs/40806618329) 已验证修复后的 macOS 27 应用可以在 AppKit 状态栏显示时启动：Required 通过，XCUITest 5/5 全部通过。此前 [Issue #4](https://github.com/wuhunyu/lite-right/issues/4) 的启动崩溃已在 CI 中不再复现。
+
+**这不改变本表的 No-Go 状态**：签名 Finder Sync 真实右键菜单覆盖范围、自动化授权与外部磁盘等场景，仍需按 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3) 实机验证。

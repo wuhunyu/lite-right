@@ -6,6 +6,38 @@ final class SettingsSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    // Regression probes are DEBUG-only. They isolate AppKit status-item visibility
+    // and settings-window composition; they do not verify Finder authorization.
+    @MainActor
+    func testProbeMinimalWindowWithoutStatusBar() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
+                      "A bare Window scene must launch without the status item or settings content")
+    }
+
+    @MainActor
+    func testProbeRealSettingsWithoutStatusBar() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["右键菜单"].firstMatch.waitForExistence(timeout: 20),
+                      "Real settings should launch without the status item")
+    }
+
+    @MainActor
+    func testProbeMinimalWindowWithStatusBar() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-minimal-window"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
+                      "A bare settings window should launch alongside the AppKit status item")
+    }
+
     @MainActor
     func testSettingsWindowIsActuallyLaunched() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
