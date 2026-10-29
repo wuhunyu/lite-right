@@ -6,37 +6,36 @@ final class SettingsSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    // Startup isolation probes are DEBUG-only. Each launch changes exactly one
-    // scene or window-content variable relative to the existing failing tests.
-    // These diagnose app startup, not Finder authorization or menu interaction.
+    // Regression probes are DEBUG-only. They isolate AppKit status-item visibility
+    // and settings-window composition; they do not verify Finder authorization.
     @MainActor
-    func testProbeMinimalWindowWithoutMenuBar() throws {
+    func testProbeMinimalWindowWithoutStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
-                      "A bare Window scene must launch without MenuBarExtra or settings content")
+                      "A bare Window scene must launch without the status item or settings content")
     }
 
     @MainActor
-    func testProbeRealSettingsWithoutMenuBar() throws {
+    func testProbeRealSettingsWithoutStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launchArguments = ["--literight-probe-no-menubar"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["右键菜单"].firstMatch.waitForExistence(timeout: 20),
-                      "Real settings should launch without MenuBarExtra")
+                      "Real settings should launch without the status item")
     }
 
     @MainActor
-    func testProbeMinimalWindowWithMenuBar() throws {
+    func testProbeMinimalWindowWithStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launchArguments = ["--literight-probe-minimal-window"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
-                      "A bare settings window should launch alongside MenuBarExtra")
+                      "A bare settings window should launch alongside the AppKit status item")
     }
 
     @MainActor

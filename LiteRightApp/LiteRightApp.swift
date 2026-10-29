@@ -4,13 +4,32 @@ import LiteRightCore
 
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
+    private let statusBar = StatusBarController()
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(SharedPreferences().load().showDockIcon ? .regular : .accessory)
+        let preferences = SharedPreferences().load()
+        NSApp.setActivationPolicy(preferences.showDockIcon ? .regular : .accessory)
+        setMenuBarVisible(preferences.showMenuBarIcon)
     }
+
+    func setMenuBarVisible(_ visible: Bool) {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--literight-probe-no-menubar") {
+            statusBar.setVisible(false)
+            return
+        }
+        #endif
+        statusBar.setVisible(visible)
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        openPreferences()
+        return true
+    }
+
+    func openPreferences() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.windows.first(where: { $0.canBecomeKey })?.makeKeyAndOrderFront(nil)
-        return true
     }
 }
 
@@ -21,25 +40,11 @@ struct LiteRightApp: App {
     @StateObject private var dispatcher = OperationDispatcher()
 
     #if DEBUG
-    // Diagnostic flags are accepted only in debug builds and never affect releases.
+    // Diagnostic flag only affects the XCUITest scene and is absent in release builds.
     private var probeMinimalWindow: Bool {
         ProcessInfo.processInfo.arguments.contains("--literight-probe-minimal-window")
     }
-    private var probeNoMenuBar: Bool {
-        ProcessInfo.processInfo.arguments.contains("--literight-probe-no-menubar")
-    }
     #endif
-
-    // SceneBuilder cannot conditionally omit a Scene at runtime.
-    // Keep the scene declaration stable; disable insertion in diagnostic mode.
-    private var menuBarInsertion: Binding<Bool> {
-        #if DEBUG
-        if probeNoMenuBar {
-            return .constant(false)
-        }
-        #endif
-        return model.menuBarVisible
-    }
 
     var body: some Scene {
         Window("LiteRight 设置", id: "preferences") {
@@ -59,24 +64,11 @@ struct LiteRightApp: App {
             .onChange(of: model.value.showDockIcon) { _, visible in
                 NSApp.setActivationPolicy(visible ? .regular : .accessory)
             }
+            .onChange(of: model.value.showMenuBarIcon) { _, visible in
+                appDelegate.setMenuBarVisible(visible)
+            }
         }
         .defaultSize(width: 760, height: 520)
         .commands { CommandGroup(replacing: .newItem) {} }
-
-        MenuBarExtra("LiteRight", systemImage: "cursorarrow.click.2", isInserted: menuBarInsertion) {
-            MenuBarActions()
-        }
-    }
-}
-
-struct MenuBarActions: View {
-    @Environment(\.openWindow) private var openWindow
-    var body: some View {
-        Button("打开 LiteRight 设置") {
-            openWindow(id: "preferences")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        Divider()
-        Button("退出 LiteRight") { NSApp.terminate(nil) }
     }
 }
