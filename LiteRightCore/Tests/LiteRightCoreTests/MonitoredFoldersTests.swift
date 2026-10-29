@@ -12,6 +12,25 @@ final class MonitoredFoldersTests: XCTestCase {
         XCTAssertEqual(result, [root])
     }
 
+    func testRegistrationRootsDoNotRequireSandboxFileSystemAccess() {
+        let offlinePath = "/Volumes/LiteRight-Not-Mounted-\(UUID().uuidString)"
+        let expected = URL(fileURLWithPath: offlinePath, isDirectory: true).standardizedFileURL
+        XCTAssertEqual(MonitoredFolders.registrationDirectoryURLs([offlinePath]), Set([expected]))
+    }
+
+    func testRegistrationCollapsesNestedRootsWithoutStattingDirectories() {
+        let roots = ["/Users/literight-example", "/Users/literight-example/Documents"]
+        XCTAssertEqual(
+            MonitoredFolders.registrationDirectoryURLs(roots),
+            Set([URL(fileURLWithPath: roots[0], isDirectory: true).standardizedFileURL])
+        )
+    }
+
+    func testDefaultFinderRootUsesLoginAccountHomeNotSandboxContainer() {
+        XCTAssertEqual(GeneralPreferences.default.monitoredFolderPaths,
+                       [UserHomeDirectory.current()])
+    }
+
     func testUnavailableExternalVolumeStaysConfiguredButIsNotWatched() {
         let missing = "/Volumes/LiteRight-Unplugged-\(UUID().uuidString)"
         XCTAssertEqual(MonitoredFolders.normalize([missing]), [missing])
