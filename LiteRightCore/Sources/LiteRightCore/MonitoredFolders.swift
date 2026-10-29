@@ -32,6 +32,16 @@ public enum MonitoredFolders {
         })
     }
 
+    /// Compare component boundaries, not path prefixes: /Foo must not cover /Foobar.
+    /// Pure and sandbox-independent for diagnosing Finder Sync watch registration.
+    public static func covers(_ directory: URL, registeredRoots: Set<URL>) -> Bool {
+        let path = directory.standardizedFileURL.path
+        return registeredRoots.contains { root in
+            let rootPath = root.standardizedFileURL.path
+            return path == rootPath || path.hasPrefix(rootPath + "/")
+        }
+    }
+
     /// The Finder extension registers only existing, readable directories.
     /// An ancestor watch already covers its descendants; register each active root once.
     public static func activeDirectoryURLs(_ paths: [String]) -> Set<URL> {
