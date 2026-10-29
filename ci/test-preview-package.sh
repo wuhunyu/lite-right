@@ -18,6 +18,9 @@ ditto -x -k "$ZIP" "$TMP"
 APP="$TMP/LiteRight.app"
 EXT="$APP/Contents/PlugIns/LiteRightFinderExtension.appex"
 test -d "$EXT"
+echo '=== Extracted ZIP app Info.plist LSUIElement ==='
+/usr/bin/plutil -p "$APP/Contents/Info.plist" | grep -E 'LSUIElement|CFBundleIdentifier|CFBundleExecutable' || true
+/usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$APP/Contents/Info.plist" || true
 swift ci/verify-app-bundle.swift "$APP"
 codesign --verify --strict --deep --verbose=2 "$APP"
 codesign --verify --strict --verbose=2 "$EXT"

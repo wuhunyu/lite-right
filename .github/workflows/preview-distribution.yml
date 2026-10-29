@@ -75,6 +75,11 @@ jobs:
           bash ci/package-preview.sh \
             "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app" \
             "$GITHUB_WORKSPACE/dist" "$label"
+      - name: Inspect source Release plist before packaging
+        run: |
+          set -euo pipefail
+          /usr/bin/plutil -p "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app/Contents/Info.plist" | grep -E 'LSUIElement|CFBundleIdentifier|CFBundleExecutable' || true
+          /usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app/Contents/Info.plist" || true
       - name: Inspect package contents and signature boundaries
         run: |
           set -euo pipefail
