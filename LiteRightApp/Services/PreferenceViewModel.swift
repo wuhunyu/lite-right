@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import LiteRightCore
 
@@ -12,9 +13,22 @@ final class PreferenceViewModel: ObservableObject {
         var updated = value
         change(&updated)
         updated = updated.normalized()
-        do { try storage.save(updated); value = updated }
-        catch { lastError = error.localizedDescription }
+        let monitoredRootsChanged = updated.monitoredFolderPaths != value.monitoredFolderPaths
+        do {
+            try storage.save(updated)
+            value = updated
+            if monitoredRootsChanged { refreshMonitoredDirectories() }
+        } catch { lastError = error.localizedDescription }
     }
+
+    func refreshMonitoredDirectories() {
+        // Only a signal is sent; the extension reloads paths from its shared suite.
+        DistributedNotificationCenter.default().postNotificationName(
+            Notification.Name(MonitoredFolders.didChangeNotification),
+            object: nil, userInfo: nil, deliverImmediately: true
+        )
+    }
+
     func resetMenus() { update { $0.orderedMenuItems = GeneralPreferences.default.orderedMenuItems } }
     func moveMenu(from offsets: IndexSet, to destination: Int) {
         update { $0.orderedMenuItems.move(fromOffsets: offsets, toOffset: destination) }
