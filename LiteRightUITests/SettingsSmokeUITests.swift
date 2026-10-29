@@ -39,6 +39,18 @@ final class SettingsSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    func testGeneralSettingsCanConfigureFinderMonitoredFolders() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launch()
+        defer { app.terminate() }
+        let general = app.staticTexts["通用"].firstMatch
+        XCTAssertTrue(general.waitForExistence(timeout: 20))
+        general.click()
+        XCTAssertTrue(app.buttons["添加监控目录"].firstMatch.waitForExistence(timeout: 10),
+                      "The native General settings page must allow adding monitored Finder roots")
+    }
+
+    @MainActor
     func testSettingsWindowIsActuallyLaunched() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launch()
