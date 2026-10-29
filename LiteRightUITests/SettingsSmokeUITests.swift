@@ -65,8 +65,9 @@ final class SettingsSmokeUITests: XCTestCase {
         app.launch()
         defer { app.terminate() }
 
-        let toggleLabel = "显示 新建 Markdown"
-        var toggle = app.switches[toggleLabel]
+        let toggleIdentifier = "menu-visibility-newMarkdown"
+        var toggle = app.descendants(matching: .any)
+            .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
                       "The menu visibility toggle must be accessible")
 
@@ -80,7 +81,8 @@ final class SettingsSmokeUITests: XCTestCase {
         app.terminate()
         app.launch()
 
-        toggle = app.switches[toggleLabel]
+        toggle = app.descendants(matching: .any)
+            .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
         XCTAssertEqual(toggle.value as? String, updated,
                        "LiteRight menu visibility must survive a real process restart")
