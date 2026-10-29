@@ -20,10 +20,27 @@ struct LiteRightApp: App {
     @StateObject private var model = PreferenceViewModel()
     @StateObject private var dispatcher = OperationDispatcher()
 
+    #if DEBUG
+    // Diagnostic flags are accepted only in debug builds and never affect releases.
+    private var probeMinimalWindow: Bool {
+        ProcessInfo.processInfo.arguments.contains("--literight-probe-minimal-window")
+    }
+    private var probeNoMenuBar: Bool {
+        ProcessInfo.processInfo.arguments.contains("--literight-probe-no-menubar")
+    }
+    #endif
+
     var body: some Scene {
         Window("LiteRight 设置", id: "preferences") {
-            SettingsRootView()
-                .environmentObject(model)
+            #if DEBUG
+            if probeMinimalWindow {
+                Text("LiteRight Startup Probe")
+            } else {
+                SettingsRootView().environmentObject(model)
+            }
+            #else
+            SettingsRootView().environmentObject(model)
+            #endif
                 .frame(minWidth: 640, minHeight: 420)
                 .onOpenURL { url in Task { await dispatcher.handleIncomingURL(url) } }
                 .onChange(of: model.value.showDockIcon) { _, visible in
@@ -33,9 +50,17 @@ struct LiteRightApp: App {
         .defaultSize(width: 760, height: 520)
         .commands { CommandGroup(replacing: .newItem) {} }
 
+        #if DEBUG
+        if !probeNoMenuBar {
+            MenuBarExtra("LiteRight", systemImage: "cursorarrow.click.2", isInserted: model.menuBarVisible) {
+                MenuBarActions()
+            }
+        }
+        #else
         MenuBarExtra("LiteRight", systemImage: "cursorarrow.click.2", isInserted: model.menuBarVisible) {
             MenuBarActions()
         }
+        #endif
     }
 }
 
