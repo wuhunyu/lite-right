@@ -59,38 +59,49 @@ final class SettingsSmokeUITests: XCTestCase {
                       "LiteRight must display its native preferences window")
     }
 
+    /// Read the actual on-disk snapshot rather than assuming macOS 27
+    /// accessibility checkboxes expose a nonempty XCUIElement.value string.
+    private func savedMarkdownVisibility() -> Bool? {
+        let support = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first ?? FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support", isDirectory: true)
+        let file = support.appendingPathComponent("LiteRight/preferences.json")
+        guard let bytes = try? Data(contentsOf: file),
+              let json = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
+              let entries = json["orderedMenuItems"] as? [[String: Any]],
+              let entry = entries.first(where: { ($0["id"] as? String) == "newMarkdown" }) else {
+            return nil
+        }
+        return entry["isVisible"] as? Bool
+    }
+
     @MainActor
     func testMenuVisibilityPersistsAcrossAppRestart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launch()
         defer { app.terminate() }
-
         let toggleIdentifier = "menu-visibility-newMarkdown"
+        let baseline = savedMarkdownVisibility() ?? true
+
         var toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
                       "The menu visibility toggle must be accessible")
-
-        let before = toggle.value as? String ?? ""
         toggle.click()
-        let updated = toggle.value as? String ?? ""
-        XCTAssertNotEqual(updated, before, "Clicking the toggle must change its value")
+        XCTAssertEqual(savedMarkdownVisibility(), !baseline,
+                       "The first click must atomically save the new visibility to disk")
 
-        // This killed/relaunched process must load the saved preference from disk,
-        // not merely retain an in-memory SwiftUI state or App Group cache.
+        // Terminate and relaunch: the second click must restore the persisted
+        // value, proving the new process loaded it instead of a default.
         app.terminate()
         app.launch()
-
         toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
-        XCTAssertEqual(toggle.value as? String, updated,
-                       "LiteRight menu visibility must survive a real process restart")
-
-        // Avoid leaving the runner's own preferences modified for later tests.
-        if updated != before {
-            toggle.click()
-        }
+        toggle.click()
+        XCTAssertEqual(savedMarkdownVisibility(), baseline,
+                       "The relaunched app must use the saved preference")
     }
 
     @MainActor
