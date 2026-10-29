@@ -6,13 +6,40 @@ final class FinderSync: FIFinderSync {
     private let storage = SharedPreferences()
     override init() {
         super.init()
-        let paths = storage.load().monitoredFolderPaths
-        FIFinderSyncController.default().directoryURLs = Set(paths.map { URL(fileURLWithPath: $0, isDirectory: true) })
+        reloadMonitoredDirectories()
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(monitoredFoldersChanged(_:)),
+            name: Notification.Name(MonitoredFolders.didChangeNotification), object: nil
+        )
     }
+
+    deinit {
+        DistributedNotificationCenter.default().removeObserver(self)
+    }
+
+    @objc private func monitoredFoldersChanged(_ notification: Notification) {
+        reloadMonitoredDirectories()
+    }
+
+    private func reloadMonitoredDirectories() {
+        let paths = storage.load().monitoredFolderPaths
+        FIFinderSyncController.default().directoryURLs = MonitoredFolders.activeDirectoryURLs(paths)
+    }
+
     override func menu(for menuKind: FIMenuKind) -> NSMenu? {
+        let context: FinderMenuContext
+        switch menuKind {
+        case .contextualMenuForItems: context = .items
+        case .contextualMenuForContainer: context = .container
+        case .contextualMenuForSidebar: context = .sidebar
+        default: return nil // No toolbar action, and no invented directory.
+        }
         let controller = FIFinderSyncController.default()
-        let selected = menuKind == .contextualMenuForItems ? (controller.selectedItemURLs() ?? []) : []
-        let target = TargetResolver.resolve(containerURL: controller.targetedURL(), selectedItemURLs: selected)
+        let target = FinderMenuTarget.resolve(
+            context: context,
+            targetedURL: controller.targetedURL(),
+            selectedItemURLs: controller.selectedItemURLs()
+        )
         let pref = storage.load()
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
