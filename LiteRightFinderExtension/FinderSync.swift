@@ -1,11 +1,14 @@
 import Cocoa
 import FinderSync
 import LiteRightCore
+import os
 
 final class FinderSync: FIFinderSync {
     private let storage = SharedPreferences()
+    private let logger = Logger(subsystem: "com.wuhunyu.literight.finder", category: "lifecycle")
     override init() {
         super.init()
+        logger.notice("finder_sync_init process=\(ProcessInfo.processInfo.processIdentifier)")
         reloadMonitoredDirectories()
         DistributedNotificationCenter.default().addObserver(
             self, selector: #selector(monitoredFoldersChanged(_:)),
@@ -22,8 +25,24 @@ final class FinderSync: FIFinderSync {
     }
 
     private func reloadMonitoredDirectories() {
-        let paths = storage.load().monitoredFolderPaths
-        FIFinderSyncController.default().directoryURLs = MonitoredFolders.registrationDirectoryURLs(paths)
+        let preferences = storage.load()
+        let paths = preferences.monitoredFolderPaths
+        let urls = MonitoredFolders.registrationDirectoryURLs(paths)
+        FIFinderSyncController.default().directoryURLs = urls
+        let loginHome = UserHomeDirectory.current()
+        let homeURL = URL(fileURLWithPath: loginHome.isEmpty ? "/__unknown_home__" : loginHome, isDirectory: true)
+        let testURL = homeURL.appendingPathComponent("LiteRightLocalTest", isDirectory: true)
+        let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedPreferences.suiteName)
+        logger.notice("watch_registration roots=\(urls.count) home_covered=\(MonitoredFolders.covers(homeURL, registeredRoots: urls)) test_covered=\(MonitoredFolders.covers(testURL, registeredRoots: urls)) group_container_available=\(groupURL != nil)")
+        // Paths are private by default. This reports counts and coverage, never the user's directory names.
+    }
+
+    override func beginObservingDirectory(at url: URL) {
+        logger.notice("begin_observing monitored=\(MonitoredFolders.covers(url, registeredRoots: FIFinderSyncController.default().directoryURLs))")
+    }
+
+    override func endObservingDirectory(at url: URL) {
+        logger.notice("end_observing")
     }
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu? {
@@ -32,7 +51,9 @@ final class FinderSync: FIFinderSync {
         case .contextualMenuForItems: context = .items
         case .contextualMenuForContainer: context = .container
         case .contextualMenuForSidebar: context = .sidebar
-        default: return nil // No toolbar action, and no invented directory.
+        default:
+            logger.notice("menu_unsupported_context kind=\(menuKind.rawValue)")
+            return nil // No toolbar action, and no invented directory.
         }
         let controller = FIFinderSyncController.default()
         let target = FinderMenuTarget.resolve(
@@ -41,6 +62,7 @@ final class FinderSync: FIFinderSync {
             selectedItemURLs: controller.selectedItemURLs()
         )
         let pref = storage.load()
+        logger.notice("menu_callback kind=\(menuKind.rawValue) selection=\(controller.selectedItemURLs()?.count ?? 0) target_available=\(target.directoryURL != nil) visible_count=\(pref.orderedMenuItems.filter(\.isVisible).count)")
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
             let id = preference.id
@@ -51,6 +73,7 @@ final class FinderSync: FIFinderSync {
             item.isEnabled = id == .toggleHiddenFiles || target.directoryURL != nil
             menu.addItem(item)
         }
+        logger.notice("menu_result item_count=\(menu.items.count)")
         return menu.items.isEmpty ? nil : menu
     }
     @objc private func performAction(_ sender: NSMenuItem) {
