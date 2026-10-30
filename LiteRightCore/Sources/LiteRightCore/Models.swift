@@ -1,13 +1,30 @@
 import Foundation
+import Darwin
 
-/// Resolve the *login account* home, not NSHomeDirectory() which points to
-/// the application's container when Finder Sync is sandboxed.
+/// Resolve the login account's real home via the POSIX user record.
+/// Finder Sync runs in a sandbox: Foundation home-directory lookup may instead
+/// point inside the extension's private Library/Containers directory.
 public enum UserHomeDirectory {
     public static func current() -> String {
+        let accountHome: String?
+        if let record = getpwuid(getuid()), let directory = record.pointee.pw_dir {
+            accountHome = String(validatingCString: directory)
+        } else {
+            accountHome = nil
+        }
         let user = NSUserName()
-        return FileManager.default.homeDirectory(forUser: user)?.standardizedFileURL.path
+        let foundationHome = FileManager.default.homeDirectory(forUser: user)?.path
             ?? NSHomeDirectoryForUser(user)
             ?? ""
+        return resolve(accountHome: accountHome, foundationHome: foundationHome)
+    }
+
+    /// Never use a sandbox-virtualized Foundation path as the Finder watch root.
+    /// Returning no watch root is safer than registering the extension container.
+    public static func resolve(accountHome: String?, foundationHome _: String) -> String {
+        guard let accountHome, accountHome.hasPrefix("/") else { return "" }
+        let path = URL(fileURLWithPath: accountHome, isDirectory: true).standardizedFileURL.path
+        return path == "/" ? "" : path
     }
 }
 
