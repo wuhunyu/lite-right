@@ -38,6 +38,30 @@ pluginkit -m -vv -i com.wuhunyu.literight.finder
 
 安装路径在 `~/Applications` 的用户，请将命令中的 `/Applications/LiteRight.app` 换成实际路径。请先移走旧版本重复副本，否则 LaunchServices/PlugInKit 可能选择旧扩展。安装包采用 ad-hoc 沙盒签名，可以用于本机测试 Finder Sync 注册，但实际五项操作与 App Group 授权仍须按 Issue #3 实机核验。
 
+## 开发者测试包的右键执行通道（仅本地诊断用途）
+
+此前的 ad-hoc 安装包可能在 `RequestStore.save()` 写入 App Group 时直接失败：Finder Sync 的错误只写进系统日志/播放提示音，导致右键菜单看得见但点了没有反应。这与 Finder 菜单是否显示是两个独立问题。
+
+**新版测试构建** 在编译时启用 `LITERIGHT_UNTRUSTED_PREVIEW`，右键点击将通过本地自定义 URL Scheme 唤醒 LiteRight 主进程，不再把执行请求写入未经授权的 App Group。正式 Developer Team 签名构建不启用该标记，仍使用原来的 App Group UUID 请求桥接。请勿将开发者测试版视为生产安全配置。
+
+此通道采用如下限制：
+
+- 自定义 URL 可以由其他应用发起，**来源不可认证**，因此只允许五个固定动作；无法注入任意 shell 脚本、命令或外部可执行路径。
+- 请求包含随机 ID、60 秒有效期；大小及目录路径长度有限制，拒绝相对路径、根目录、路径穿越、重复/附加参数。
+- 主应用从自身独立保存的设置重新读取监控目录、校验真实目录、解析符号链接并确认其属于监控范围；不会直接信任 URL 携带的目标位置。
+- 限制单进程每分钟 30 次请求；重复的请求 ID 在同一进程中不重复执行。文件创建采用原子的无覆盖写入。隐藏文件显示修改沿用显式用户确认。
+- 不从外部 URL 执行任意命令；打开终端使用主应用中用户所选的 Terminal/iTerm2 与 Shell，并安全引用目标路径。
+
+**注意**：以上仍不足以抵御有能力反复发起自定义 URL 的本地恶意程序。因此本方案只为开发者 ad-hoc 安装包恢复真实功能测试；正式发布仍应使用已授权的 App Group/XPC，不得将受限预览通道默认引入正式签名构建。
+
+可以按顺序右键测试「新建 Markdown」（确认出现文件）、「复制目录路径」（确认剪贴板）、「在终端中打开」（确认新的终端窗口）以及「切换隐藏文件显示」（确认弹窗）。若依然无反应，可执行：
+
+```sh
+log show --last 3m --style compact --info --predicate 'subsystem == "com.wuhunyu.literight.finder" OR subsystem == "com.wuhunyu.literight"'
+```
+
+重点观察 `finder_action_selected`、`finder_action_transport`、`preview_request_received`、`preview_request_completed`、`operation_failed`。**系统日志与编译通过不等于真实右键功能验收通过。**
+
 ## 设置无法保存的已知问题与修复范围
 
 2026-10-29 实机确认：此前的 ad-hoc 测试版尝试向 `group.com.wuhunyu.literight` 保存菜单设置时，macOS `cfprefsd` 记录 `rejecting write ... requires user-preference-write or file-write-data sandbox access`。原代码忽略 `UserDefaults.synchronize()` 返回的失败，因此“勾选变化后重启恢复默认”。

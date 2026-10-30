@@ -53,10 +53,18 @@ jobs:
             -configuration Release -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/LiteRightPreviewDerived" \
             CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            OTHER_SWIFT_FLAGS="-D LITERIGHT_UNTRUSTED_PREVIEW" \
             build 2>&1 | tee preview-build.log
       - name: Verify original Release app bundle structure before packaging
         run: |
-          swift ci/verify-app-bundle.swift             "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app"
+          swift ci/verify-app-bundle.swift "$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app"
+      - name: Verify unsigned preview operation transport is compiled into both binaries
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/LiteRightPreviewDerived/Build/Products/Release/LiteRight.app"
+          EXT="$APP/Contents/PlugIns/LiteRightFinderExtension.appex"
+          strings "$APP/Contents/MacOS/LiteRight" | grep -Fq 'preview_request_received'
+          strings "$EXT/Contents/MacOS/LiteRightFinderExtension" | grep -Fq 'finder_action_transport preview_link'
       - name: Verify package creation rejects missing app
         run: |
           set -euo pipefail
@@ -96,7 +104,8 @@ jobs:
         run: |
           echo '### LiteRight developer preview installer' >> "$GITHUB_STEP_SUMMARY"
           echo '- DMG and ZIP contain an **ad-hoc signed** arm64 app; **no Developer ID / notarization**.' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Finder Sync/App Group functionality remains unverified and can require team-authorized signing.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- This PREVIEW ONLY build uses strictly validated local URL requests, since ad-hoc App Group IPC cannot be authorized by an Apple Developer Team.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Real Finder operations are still subject to signed-machine acceptance.' >> "$GITHUB_STEP_SUMMARY"
           echo '- Install at your own risk after verifying the hash; see docs/unsigned-preview.md.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: success()

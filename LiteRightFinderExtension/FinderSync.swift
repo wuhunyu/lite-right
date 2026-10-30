@@ -33,8 +33,11 @@ final class FinderSync: FIFinderSync {
         let homeURL = URL(fileURLWithPath: loginHome.isEmpty ? "/__unknown_home__" : loginHome, isDirectory: true)
         let testURL = homeURL.appendingPathComponent("LiteRightLocalTest", isDirectory: true)
         let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedPreferences.suiteName)
-        logger.notice("watch_registration roots=\(urls.count) home_covered=\(MonitoredFolders.covers(homeURL, registeredRoots: urls)) test_covered=\(MonitoredFolders.covers(testURL, registeredRoots: urls)) group_container_available=\(groupURL != nil)")
-        // Paths are private by default. This reports counts and coverage, never the user's directory names.
+        let foundationHome = FileManager.default.homeDirectory(forUser: NSUserName())?.standardizedFileURL.path
+        let foundationHomeDiffers = foundationHome != nil && foundationHome != loginHome
+        logger.notice("watch_registration roots=\(urls.count) posix_home_available=\(!loginHome.isEmpty) foundation_home_differs=\(foundationHomeDiffers) home_covered=\(MonitoredFolders.covers(homeURL, registeredRoots: urls)) test_covered=\(MonitoredFolders.covers(testURL, registeredRoots: urls)) group_container_available=\(groupURL != nil)")
+        // Paths stay private: only report whether the POSIX login home matches
+        // the Foundation sandbox home and whether actual monitored roots cover it.
     }
 
     override func beginObservingDirectory(at url: URL) {
@@ -68,8 +71,10 @@ final class FinderSync: FIFinderSync {
             let id = preference.id
             let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 中打开" : id.title
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = ActionPayload(id: id, target: target)
+            // Finder copies the menu item; representedObject and target
+            // are not preserved. The integer tag survives the copy.
+            guard let actionTag = FinderActionTag.tag(for: id, context: context) else { continue }
+            item.tag = actionTag
             item.isEnabled = id == .toggleHiddenFiles || target.directoryURL != nil
             menu.addItem(item)
         }
@@ -77,33 +82,57 @@ final class FinderSync: FIFinderSync {
         return menu.items.isEmpty ? nil : menu
     }
     @objc private func performAction(_ sender: NSMenuItem) {
-        guard let payload = sender.representedObject as? ActionPayload else { return }
+        guard let selection = FinderActionTag.resolve(tag: sender.tag) else {
+            logger.error("finder_action_failed invalid_menu_tag=\(sender.tag)")
+            NSSound.beep()
+            return
+        }
+
+        // Query Finder's current target at action time. Finder's replicated
+        // NSMenuItem cannot retain arbitrary per-item objects.
+        let controller = FIFinderSyncController.default()
+        let target = FinderMenuTarget.resolve(
+            context: selection.context,
+            targetedURL: controller.targetedURL(),
+            selectedItemURLs: controller.selectedItemURLs()
+        )
+        logger.notice("finder_action_selected action=\(selection.action.rawValue, privacy: .public) target_available=\(target.directoryURL != nil)")
+        guard selection.action == .toggleHiddenFiles || target.directoryURL != nil else {
+            logger.error("finder_action_failed target_unavailable")
+            NSSound.beep()
+            return
+        }
+
         do {
-            // FinderSync is sandboxed. Never create files or rely on user-file
-            // permissions here; route the action to the native host instead.
             let pref = storage.load()
             let request = OperationRequest(
-                action: payload.id,
-                directoryPath: payload.target.directoryURL?.path,
+                action: selection.action,
+                directoryPath: target.directoryURL?.path,
                 terminalBundleID: pref.preferredTerminal
             )
+
+            #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+            // An ad-hoc build cannot rely on a Team-authorized App Group.
+            // Validate this local, untrusted link again in the host.
+            let deepLink = try PreviewRequestLink.encode(request)
+            logger.notice("finder_action_transport preview_link")
+            #else
             let store = try RequestStore()
             try store.save(request)
             guard let deepLink = URL(string: "lite-right://run?id=\(request.id.uuidString)") else {
                 throw LiteRightError.requestUnavailable
             }
+            logger.notice("finder_action_transport app_group")
+            #endif
+
             guard NSWorkspace.shared.open(deepLink) else {
-                throw LiteRightError.operationFailed("无法启动 LiteRight 主应用。请从应用程序目录打开 LiteRight 后重试。")
+                throw LiteRightError.operationFailed("无法启动 LiteRight 主应用。请确认应用已安装且 URL Scheme 已注册。")
             }
+            logger.notice("finder_action_opened action=\(selection.action.rawValue, privacy: .public)")
         } catch {
+            logger.error("finder_action_failed action=\(selection.action.rawValue, privacy: .public) error=\(String(describing: error), privacy: .private)")
             NSLog("LiteRight Finder action failed: %@", String(describing: error))
             NSSound.beep()
         }
     }
-}
-
-private final class ActionPayload: NSObject {
-    let id: MenuItemID
-    let target: ResolvedTarget
-    init(id: MenuItemID, target: ResolvedTarget) { self.id = id; self.target = target }
 }
