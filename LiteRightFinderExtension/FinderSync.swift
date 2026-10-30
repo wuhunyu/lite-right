@@ -80,25 +80,41 @@ final class FinderSync: FIFinderSync {
         return menu.items.isEmpty ? nil : menu
     }
     @objc private func performAction(_ sender: NSMenuItem) {
-        guard let payload = sender.representedObject as? ActionPayload else { return }
+        guard let payload = sender.representedObject as? ActionPayload else {
+            logger.error("finder_action_failed missing_payload")
+            NSSound.beep()
+            return
+        }
+        logger.notice("finder_action_selected action=\(payload.id.rawValue, privacy: .public) target_available=\(payload.target.directoryURL != nil)")
         do {
-            // FinderSync is sandboxed. Never create files or rely on user-file
-            // permissions here; route the action to the native host instead.
             let pref = storage.load()
             let request = OperationRequest(
                 action: payload.id,
                 directoryPath: payload.target.directoryURL?.path,
                 terminalBundleID: pref.preferredTerminal
             )
+
+            #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+            // An ad-hoc build cannot rely on an Apple Team-authorized App Group.
+            // The host validates every untrusted preview link and its target
+            // against the host's own monitored roots before executing anything.
+            let deepLink = try PreviewRequestLink.encode(request)
+            logger.notice("finder_action_transport preview_link")
+            #else
             let store = try RequestStore()
             try store.save(request)
             guard let deepLink = URL(string: "lite-right://run?id=\(request.id.uuidString)") else {
                 throw LiteRightError.requestUnavailable
             }
+            logger.notice("finder_action_transport app_group")
+            #endif
+
             guard NSWorkspace.shared.open(deepLink) else {
-                throw LiteRightError.operationFailed("无法启动 LiteRight 主应用。请从应用程序目录打开 LiteRight 后重试。")
+                throw LiteRightError.operationFailed("无法启动 LiteRight 主应用。请确认应用已安装且 URL Scheme 已注册。")
             }
+            logger.notice("finder_action_opened action=\(payload.id.rawValue, privacy: .public)")
         } catch {
+            logger.error("finder_action_failed action=\(payload.id.rawValue, privacy: .public) error=\(String(describing: error), privacy: .private)")
             NSLog("LiteRight Finder action failed: %@", String(describing: error))
             NSSound.beep()
         }
