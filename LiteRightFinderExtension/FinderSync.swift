@@ -69,8 +69,13 @@ final class FinderSync: FIFinderSync {
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
             let id = preference.id
-            let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 中打开" : id.title
+            let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 打开" : id.title
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
+            item.target = self
+            if let symbol = NSImage(systemSymbolName: id.symbol, accessibilityDescription: title) {
+                symbol.isTemplate = true
+                item.image = symbol
+            }
             // Finder copies the menu item; representedObject and target
             // are not preserved. The integer tag survives the copy.
             guard let actionTag = FinderActionTag.tag(for: id, context: context) else { continue }
@@ -105,10 +110,10 @@ final class FinderSync: FIFinderSync {
 
         do {
             let pref = storage.load()
-            let request = OperationRequest(
+            let request = OperationRequest.forFinderMenu(
                 action: selection.action,
-                directoryPath: target.directoryURL?.path,
-                terminalBundleID: pref.preferredTerminal
+                directoryURL: target.directoryURL,
+                preferredTerminal: pref.preferredTerminal
             )
 
             #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW

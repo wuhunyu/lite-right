@@ -38,21 +38,6 @@ struct SettingsRootView: View {
             .environmentObject(model)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let warning = model.sharedSyncWarning {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text(warning)
-                        .font(.caption)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.regularMaterial)
-            }
-        }
         .alert("无法保存配置", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) {
             Button("确定") { model.lastError = nil }
         } message: { Text(model.lastError ?? "") }

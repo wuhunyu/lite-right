@@ -58,6 +58,30 @@ final class PreviewRequestLinkTests: XCTestCase {
         XCTAssertThrowsError(try PreviewRequestLink.encode(invalidToggle))
     }
 
+
+    func testFinderMenuToggleRequestHasNoDirectoryEvenWhenFinderHasTarget() throws {
+        let folder = URL(fileURLWithPath: "/Users/fixture/Documents", isDirectory: true)
+        let request = OperationRequest.forFinderMenu(
+            action: .toggleHiddenFiles,
+            directoryURL: folder,
+            preferredTerminal: .terminal
+        )
+        XCTAssertNil(request.directoryPath)
+        XCTAssertNoThrow(try PreviewRequestLink.encode(request))
+    }
+
+    func testFinderMenuPathActionsKeepDirectoryAndSelectedTerminal() throws {
+        let folder = URL(fileURLWithPath: "/Users/fixture/My Projects", isDirectory: true)
+        let request = OperationRequest.forFinderMenu(
+            action: .openInTerminal,
+            directoryURL: folder,
+            preferredTerminal: .iTerm2
+        )
+        XCTAssertEqual(request.directoryPath, folder.path)
+        XCTAssertEqual(request.terminalBundleID, .iTerm2)
+        XCTAssertNoThrow(try PreviewRequestLink.encode(request))
+    }
+
     func testRejectsOversizedDeepLink() {
         let huge = "lite-right://run?request=" + String(repeating: "A", count: 9000)
         XCTAssertThrowsError(try PreviewRequestLink.decode(URL(string: huge)!))
