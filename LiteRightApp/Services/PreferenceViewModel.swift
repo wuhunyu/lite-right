@@ -29,6 +29,14 @@ final class PreferenceViewModel: ObservableObject {
             // Never roll back a successful local write because Finder sharing is denied.
             try storage.save(updated)
             value = updated
+            #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+            if let snapshot = PreviewMenuSync.encode(updated) {
+                DistributedNotificationCenter.default().post(
+                    name: PreviewMenuSync.snapshotName, object: snapshot
+                )
+            }
+            if monitoredRootsChanged { refreshMonitoredDirectories() }
+            #endif
             do {
                 try sharedStorage.save(updated)
                 sharedSyncWarning = nil
