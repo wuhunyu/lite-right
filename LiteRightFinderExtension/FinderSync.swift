@@ -71,6 +71,11 @@ final class FinderSync: FIFinderSync {
             let id = preference.id
             let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 中打开" : id.title
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
+            item.target = self
+            if let symbol = NSImage(systemSymbolName: id.symbol, accessibilityDescription: title) {
+                symbol.isTemplate = true
+                item.image = symbol
+            }
             // Finder copies the menu item; representedObject and target
             // are not preserved. The integer tag survives the copy.
             guard let actionTag = FinderActionTag.tag(for: id, context: context) else { continue }
