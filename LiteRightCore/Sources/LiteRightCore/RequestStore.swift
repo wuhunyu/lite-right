@@ -16,6 +16,21 @@ public struct OperationRequest: Codable, Sendable {
         schemaVersion = 1; self.id = id; self.action = action
         self.directoryPath = directoryPath; self.terminalBundleID = terminalBundleID; self.createdAt = createdAt
     }
+
+    /// Finder has a directory target even for global actions. Hidden-files toggling
+    /// must not forward that path: the preview link rejects it as invalid input.
+    /// Centralizing this mapping keeps signed and unsigned transports consistent.
+    public static func forFinderMenu(
+        action: MenuItemID,
+        directoryURL: URL?,
+        preferredTerminal: TerminalBundle
+    ) -> OperationRequest {
+        OperationRequest(
+            action: action,
+            directoryPath: action == .toggleHiddenFiles ? nil : directoryURL?.path,
+            terminalBundleID: action == .openInTerminal ? preferredTerminal : nil
+        )
+    }
 }
 
 public final class RequestStore {

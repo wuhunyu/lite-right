@@ -110,10 +110,10 @@ final class FinderSync: FIFinderSync {
 
         do {
             let pref = storage.load()
-            let request = OperationRequest(
+            let request = OperationRequest.forFinderMenu(
                 action: selection.action,
-                directoryPath: target.directoryURL?.path,
-                terminalBundleID: pref.preferredTerminal
+                directoryURL: target.directoryURL,
+                preferredTerminal: pref.preferredTerminal
             )
 
             #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
