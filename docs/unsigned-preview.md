@@ -78,6 +78,25 @@ log show --last 3m --style compact --info --predicate 'subsystem == "com.wuhunyu
 
 完整 Finder Sync 功能验收仍属于 [Issue #3](https://github.com/wuhunyu/lite-right/issues/3)，需使用正确的开发者签名与 [签名实机测试指南](https://github.com/wuhunyu/lite-right/blob/main/docs/finder-real-machine-acceptance.md)。正式发布状态仍是 **No-Go**。
 
+## 2026-10-30 菜单设置实时同步（PR #20，待实机验收）
+
+主应用的菜单顺序、勾选显隐和首选终端始终持久化到本机 `HostPreferencesStore`。由于 ad-hoc 预览包的 App Group suite 可能遭 cfprefsd 拒绝写入，预览包另以 `DistributedNotificationCenter` 发送**只含配置**的有大小上限的快照：设置变更时主动广播，Finder 扩展初始化时主动请求；扩展收到后更新内存配置和 Finder 监控目录。此通道不携带操作命令、不启用任意 shell 操作；正式开发者签名构建仍依靠 App Group。
+
+**限制：**通知是进程间易失通信，macOS 沙盒是否允许实际递送必须在用户的 Finder 扩展与主 App 会话中验证。扩展在未收到快照时仍可能使用默认偏好；应记录 `preview_settings_received` 和 `menu_callback visible_count`。不要将 CI 编译或本机 JSON 保存成功误认为菜单已经同步。
+
+隐藏文件操作目前使用 Finder 原生 Command-Shift-Period 快捷键，需要允许辅助功能与自动化权限，不再主动重启 Finder。菜单读取 Finder 当前偏好以生成“显示隐藏文件”或“隐藏隐藏文件”，若不可读则显示中性“切换隐藏文件显示”，不会凭空猜测。手动快捷键切换的反映情况同样需要实机验证。
+
+### 实机核查顺序
+
+1. 保持主应用运行、Finder 扩展已启用，打开监控目录；
+2. 隐藏一个菜单项并拖动排序，关闭右键菜单再重新打开，检查是否立刻变化；
+3. 把终端改成 iTerm2，下一次打开菜单确认标题、点击确认启动的真实终端；
+4. 右键切换隐藏文件，确认 Finder 不退出；然后手动按 ⌘⇧. 并再次右键检查标题和图标；
+5. 退出/重启 LiteRight、重新启动 Finder 后重复以上操作；
+6. 使用 `log show --last 5m --style compact --info --predicate 'subsystem == "com.wuhunyu.literight.finder" OR subsystem == "com.wuhunyu.literight"'` 收集日志。
+
+真实操作及截图提交到 Issue #3，PR #20 的 CI 通过前不得合并。
+
 ## 下载与版本规则
 
 - GitHub Actions → **LiteRight macOS unnotarized developer preview**：可下载本次构建的 ZIP、DMG 和校验文件 Artifact（保留 30 天）。
