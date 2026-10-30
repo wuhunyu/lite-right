@@ -71,8 +71,10 @@ final class FinderSync: FIFinderSync {
             let id = preference.id
             let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 中打开" : id.title
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = ActionPayload(id: id, target: target)
+            // Finder copies the menu item; representedObject and target
+            // are not preserved. The integer tag survives the copy.
+            guard let actionTag = FinderActionTag.tag(for: id, context: context) else { continue }
+            item.tag = actionTag
             item.isEnabled = id == .toggleHiddenFiles || target.directoryURL != nil
             menu.addItem(item)
         }
@@ -80,24 +82,38 @@ final class FinderSync: FIFinderSync {
         return menu.items.isEmpty ? nil : menu
     }
     @objc private func performAction(_ sender: NSMenuItem) {
-        guard let payload = sender.representedObject as? ActionPayload else {
-            logger.error("finder_action_failed missing_payload")
+        guard let selection = FinderActionTag.resolve(tag: sender.tag) else {
+            logger.error("finder_action_failed invalid_menu_tag=\(sender.tag)")
             NSSound.beep()
             return
         }
-        logger.notice("finder_action_selected action=\(payload.id.rawValue, privacy: .public) target_available=\(payload.target.directoryURL != nil)")
+
+        // Query Finder's current target at action time. Finder's replicated
+        // NSMenuItem cannot retain arbitrary per-item objects.
+        let controller = FIFinderSyncController.default()
+        let target = FinderMenuTarget.resolve(
+            context: selection.context,
+            targetedURL: controller.targetedURL(),
+            selectedItemURLs: controller.selectedItemURLs()
+        )
+        logger.notice("finder_action_selected action=\(selection.action.rawValue, privacy: .public) target_available=\(target.directoryURL != nil)")
+        guard selection.action == .toggleHiddenFiles || target.directoryURL != nil else {
+            logger.error("finder_action_failed target_unavailable")
+            NSSound.beep()
+            return
+        }
+
         do {
             let pref = storage.load()
             let request = OperationRequest(
-                action: payload.id,
-                directoryPath: payload.target.directoryURL?.path,
+                action: selection.action,
+                directoryPath: target.directoryURL?.path,
                 terminalBundleID: pref.preferredTerminal
             )
 
             #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
-            // An ad-hoc build cannot rely on an Apple Team-authorized App Group.
-            // The host validates every untrusted preview link and its target
-            // against the host's own monitored roots before executing anything.
+            // An ad-hoc build cannot rely on a Team-authorized App Group.
+            // Validate this local, untrusted link again in the host.
             let deepLink = try PreviewRequestLink.encode(request)
             logger.notice("finder_action_transport preview_link")
             #else
@@ -112,17 +128,11 @@ final class FinderSync: FIFinderSync {
             guard NSWorkspace.shared.open(deepLink) else {
                 throw LiteRightError.operationFailed("无法启动 LiteRight 主应用。请确认应用已安装且 URL Scheme 已注册。")
             }
-            logger.notice("finder_action_opened action=\(payload.id.rawValue, privacy: .public)")
+            logger.notice("finder_action_opened action=\(selection.action.rawValue, privacy: .public)")
         } catch {
-            logger.error("finder_action_failed action=\(payload.id.rawValue, privacy: .public) error=\(String(describing: error), privacy: .private)")
+            logger.error("finder_action_failed action=\(selection.action.rawValue, privacy: .public) error=\(String(describing: error), privacy: .private)")
             NSLog("LiteRight Finder action failed: %@", String(describing: error))
             NSSound.beep()
         }
     }
-}
-
-private final class ActionPayload: NSObject {
-    let id: MenuItemID
-    let target: ResolvedTarget
-    init(id: MenuItemID, target: ResolvedTarget) { self.id = id; self.target = target }
 }
