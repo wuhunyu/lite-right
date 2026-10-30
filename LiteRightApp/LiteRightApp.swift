@@ -5,11 +5,37 @@ import LiteRightCore
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     private let statusBar = StatusBarController()
+    #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+    private func sendPreviewMenuSnapshot() {
+        guard let prefs = try? HostPreferencesStore().load(),
+              let encoded = PreviewMenuSync.encode(prefs) else { return }
+        DistributedNotificationCenter.default().post(
+            name: PreviewMenuSync.snapshotName, object: encoded
+        )
+    }
+
+    @objc private func onPreviewSettingsRequest(_ note: Notification) {
+        sendPreviewMenuSnapshot()
+    }
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(onPreviewSettingsRequest(_:)),
+            name: PreviewMenuSync.requestName, object: nil
+        )
+        sendPreviewMenuSnapshot()
+        #endif
         let preferences = (try? HostPreferencesStore().load()) ?? .default
         NSApp.setActivationPolicy(preferences.showDockIcon ? .regular : .accessory)
         setMenuBarVisible(preferences.showMenuBarIcon)
+    }
+
+    deinit {
+        #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+        DistributedNotificationCenter.default().removeObserver(self)
+        #endif
     }
 
     func setMenuBarVisible(_ visible: Bool) {
