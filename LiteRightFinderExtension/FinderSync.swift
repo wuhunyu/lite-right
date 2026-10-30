@@ -5,10 +5,29 @@ import os
 
 final class FinderSync: FIFinderSync {
     private let storage = SharedPreferences()
+    #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+    private var previewPreferences: GeneralPreferences?
+    #endif
+
+    private func currentPreferences() -> GeneralPreferences {
+        #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+        if let previewPreferences { return previewPreferences }
+        #endif
+        return storage.load()
+    }
     private let logger = Logger(subsystem: "com.wuhunyu.literight.finder", category: "lifecycle")
     override init() {
         super.init()
         logger.notice("finder_sync_init process=\(ProcessInfo.processInfo.processIdentifier)")
+        #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(receivePreviewPreferences(_:)),
+            name: PreviewMenuSync.snapshotName, object: nil
+        )
+        DistributedNotificationCenter.default().post(
+            name: PreviewMenuSync.requestName, object: nil
+        )
+        #endif
         reloadMonitoredDirectories()
         DistributedNotificationCenter.default().addObserver(
             self, selector: #selector(monitoredFoldersChanged(_:)),
@@ -24,8 +43,20 @@ final class FinderSync: FIFinderSync {
         reloadMonitoredDirectories()
     }
 
+    #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
+    @objc private func receivePreviewPreferences(_ notification: Notification) {
+        guard let preferences = PreviewMenuSync.decode(notification.object as? String) else {
+            logger.error("preview_settings_invalid")
+            return
+        }
+        previewPreferences = preferences
+        logger.notice("preview_settings_received visible_count=\(preferences.orderedMenuItems.filter(\.isVisible).count)")
+        reloadMonitoredDirectories()
+    }
+    #endif
+
     private func reloadMonitoredDirectories() {
-        let preferences = storage.load()
+        let preferences = currentPreferences()
         let paths = preferences.monitoredFolderPaths
         let urls = MonitoredFolders.registrationDirectoryURLs(paths)
         FIFinderSyncController.default().directoryURLs = urls
@@ -64,15 +95,20 @@ final class FinderSync: FIFinderSync {
             targetedURL: controller.targetedURL(),
             selectedItemURLs: controller.selectedItemURLs()
         )
-        let pref = storage.load()
+        let pref = currentPreferences()
         logger.notice("menu_callback kind=\(menuKind.rawValue) selection=\(controller.selectedItemURLs()?.count ?? 0) target_available=\(target.directoryURL != nil) visible_count=\(pref.orderedMenuItems.filter(\.isVisible).count)")
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
             let id = preference.id
-            let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 打开" : id.title
+            let hiddenPresentation = FinderHiddenFilesState.menuPresentation(
+                showing: FinderHiddenFilesState.isShowingHiddenFiles()
+            )
+            let title: String = id == .openInTerminal
+                ? "在 \(pref.preferredTerminal.title) 打开"
+                : (id == .toggleHiddenFiles ? hiddenPresentation.title : id.title)
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
             item.target = self
-            if let symbol = NSImage(systemSymbolName: id.symbol, accessibilityDescription: title) {
+            if let symbol = NSImage(systemSymbolName: id == .toggleHiddenFiles ? hiddenPresentation.symbol : id.symbol, accessibilityDescription: title) {
                 symbol.isTemplate = true
                 item.image = symbol
             }
@@ -109,7 +145,7 @@ final class FinderSync: FIFinderSync {
         }
 
         do {
-            let pref = storage.load()
+            let pref = currentPreferences()
             let request = OperationRequest.forFinderMenu(
                 action: selection.action,
                 directoryURL: target.directoryURL,

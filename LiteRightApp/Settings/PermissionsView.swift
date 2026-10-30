@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import SwiftUI
 import ApplicationServices
 import FinderSync
@@ -28,13 +29,10 @@ struct PermissionsView: View {
                 Button("打开自动化设置") { openSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") }
             }
             Section("辅助功能") {
-                LabeledContent("状态", value: AXIsProcessTrusted() ? "已授权" : "未授权")
-                Toggle("使用 Finder 快捷键切换隐藏文件", isOn: Binding(
-                    get: { model.value.useAccessibilityToggleForHiddenFiles },
-                    set: { v in model.update { $0.useAccessibilityToggleForHiddenFiles = v } }
-                ))
+                LabeledContent("模拟快捷键", value: CGPreflightPostEventAccess() ? "已授权" : "未授权")
+                LabeledContent("切换方式", value: "Finder 原生快捷键（无重启）")
                 Button("打开辅助功能授权") { openSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") }
-                Text("默认方式使用 Finder 偏好设置，只有确认后才会重新启动 Finder。")
+                Text("显示或隐藏文件时会向 Finder 发送原生 ⌘⇧. 快捷键，不重启 Finder。首次使用需授权 LiteRight 的辅助功能权限；终端自动化授权只用于打开终端。")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
