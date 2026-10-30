@@ -33,8 +33,11 @@ final class FinderSync: FIFinderSync {
         let homeURL = URL(fileURLWithPath: loginHome.isEmpty ? "/__unknown_home__" : loginHome, isDirectory: true)
         let testURL = homeURL.appendingPathComponent("LiteRightLocalTest", isDirectory: true)
         let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: SharedPreferences.suiteName)
-        logger.notice("watch_registration roots=\(urls.count) home_covered=\(MonitoredFolders.covers(homeURL, registeredRoots: urls)) test_covered=\(MonitoredFolders.covers(testURL, registeredRoots: urls)) group_container_available=\(groupURL != nil)")
-        // Paths are private by default. This reports counts and coverage, never the user's directory names.
+        let foundationHome = FileManager.default.homeDirectory(forUser: NSUserName())?.standardizedFileURL.path
+        let foundationHomeDiffers = foundationHome != nil && foundationHome != loginHome
+        logger.notice("watch_registration roots=\(urls.count) posix_home_available=\(!loginHome.isEmpty) foundation_home_differs=\(foundationHomeDiffers) home_covered=\(MonitoredFolders.covers(homeURL, registeredRoots: urls)) test_covered=\(MonitoredFolders.covers(testURL, registeredRoots: urls)) group_container_available=\(groupURL != nil)")
+        // Paths stay private: only report whether the POSIX login home matches
+        // the Foundation sandbox home and whether actual monitored roots cover it.
     }
 
     override func beginObservingDirectory(at url: URL) {
