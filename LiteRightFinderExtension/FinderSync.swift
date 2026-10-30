@@ -50,7 +50,7 @@ final class FinderSync: FIFinderSync {
             return
         }
         previewPreferences = preferences
-        logger.notice("preview_settings_received visible_count=\(preferences.orderedMenuItems.filter(\\.isVisible).count)")
+        logger.notice("preview_settings_received visible_count=\(preferences.orderedMenuItems.filter(\.isVisible).count)")
         reloadMonitoredDirectories()
     }
     #endif
