@@ -69,7 +69,7 @@ final class FinderSync: FIFinderSync {
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
             let id = preference.id
-            let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 中打开" : id.title
+            let title: String = id == .openInTerminal ? "在 \(pref.preferredTerminal.title) 打开" : id.title
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
             item.target = self
             if let symbol = NSImage(systemSymbolName: id.symbol, accessibilityDescription: title) {
