@@ -130,15 +130,13 @@ struct LiteRightApp: App {
     @NSApplicationDelegateAdaptor(LiteRightApplicationDelegate.self) private var appDelegate
 
     var body: some Scene {
-        Window("LiteRight 设置", id: "preferences") {
-            SettingsRootView().environmentObject(appDelegate.model)
+        // A Settings scene never needs to be instantiated to deliver Finder URLs.
+        // Keep the host headless on both cold and warm lite-right://run launches.
+        // Explicit user requests are handled by the AppKit preferences window.
+        Settings {
+            SettingsRootView()
+                .environmentObject(appDelegate.model)
                 .frame(minWidth: 640, minHeight: 420)
         }
-        // No scene on login/startup, and opening a custom URL must not
-        // auto-create or restore this window.
-        .defaultLaunchBehavior(.suppressed)
-        .restorationBehavior(.disabled)
-        .defaultSize(width: 760, height: 520)
-        .commands { CommandGroup(replacing: .newItem) {} }
     }
 }
