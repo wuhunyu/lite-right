@@ -55,6 +55,10 @@ final class OperationDispatcher: ObservableObject {
             try await execute(request, requireMonitoredRoot: false)
             logger.notice("app_group_request_completed action=\(request.action.rawValue, privacy: .public)")
         } catch {
+            if error is CancellationError {
+                logger.notice("operation_cancelled")
+                return
+            }
             logger.error("operation_failed details=\(String(describing: error), privacy: .private)")
             // LiteRight can run as an accessory app without a Dock icon.
             // Activate explicitly so the user sees errors instead of silence.
@@ -82,7 +86,14 @@ final class OperationDispatcher: ObservableObject {
             try await TerminalLauncher.openDirectory(directory, preferences: preferences)
         case .toggleHiddenFiles:
             let preferences = try HostPreferencesStore().load()
-            try await HiddenFilesController.toggle(preferences: preferences)
+            do {
+                try await HiddenFilesController.toggle(preferences: preferences)
+            } catch {
+                logger.error("hidden_shortcut_failed compatibility_offered")
+                guard try HiddenFilesCompatibilityController.offerAfterShortcutFailure(error) else {
+                    throw CancellationError()
+                }
+            }
         }
     }
 

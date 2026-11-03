@@ -35,9 +35,27 @@ struct PermissionsView: View {
                 Text("显示或隐藏文件时会向 Finder 发送原生 ⌘⇧. 快捷键，不重启 Finder。首次使用需授权 LiteRight 的辅助功能权限；终端自动化授权只用于打开终端。")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("隐藏文件兼容模式（可选）") {
+                Text("如果 Finder 原生快捷键模拟仍不生效，可明确选择兼容模式。该模式会重启 Finder，不会自动执行。")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button("显示隐藏文件（重启 Finder）") { applyCompatibility(showing: true) }
+                    Button("隐藏隐藏文件（重启 Finder）") { applyCompatibility(showing: false) }
+                }
+            }
         }
         .formStyle(.grouped).padding(14)
         .onAppear { refreshFinderState() }
+    }
+
+    @MainActor
+    private func applyCompatibility(showing: Bool) {
+        do {
+            _ = try HiddenFilesCompatibilityController.confirm(showing: showing)
+        } catch {
+            NSApp.activate(ignoringOtherApps: true)
+            NSAlert(error: error).runModal()
+        }
     }
 
     private func refreshFinderState() {
