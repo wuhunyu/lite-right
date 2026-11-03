@@ -38,6 +38,9 @@ public struct OperationRequest: Codable, Sendable {
 public final class RequestStore {
     private let directory: URL
     private let ttl: TimeInterval = 60
+    private let abandonedProcessingAge: TimeInterval = 24 * 60 * 60
+    private let temporaryFileAge: TimeInterval = 10 * 60
+    private let cleanupLimit = 128
     public convenience init(appGroupIdentifier: String = SharedPreferences.suiteName) throws {
         guard let base = FileManager.default.containerURLForLiteRightGroup(identifier: appGroupIdentifier) else {
             throw LiteRightError.requestUnavailable
@@ -53,6 +56,7 @@ public final class RequestStore {
         directory.appendingPathComponent("\(id.uuidString).\(status).json")
     }
     public func save(_ request: OperationRequest) throws {
+        _ = cleanupExpiredRequests()
         // MenuItemID is a closed Codable enum: only the four supported actions can be decoded.
         // Every Finder menu action is dispatched to the native host outside the sandbox.
         let payload = try JSONEncoder().encode(request)
@@ -83,6 +87,7 @@ public final class RequestStore {
         guard FileManager.default.fileExists(atPath: pending.path) else { throw LiteRightError.requestAlreadyProcessed }
         do { try FileManager.default.moveItem(at: pending, to: processing) }
         catch { throw LiteRightError.requestAlreadyProcessed }
+        _ = cleanupExpiredRequests()
         let request = try JSONDecoder().decode(OperationRequest.self, from: Data(contentsOf: processing))
         guard request.schemaVersion == 1, request.id == id else {
             throw LiteRightError.unsupportedAction
@@ -93,6 +98,52 @@ public final class RequestStore {
     }
     public func complete(id: UUID) throws {
         try? FileManager.default.removeItem(at: url(id, "processing"))
+        _ = cleanupExpiredRequests()
+    }
+
+    /// Reclaims expired pending, abandoned processing, and stale temporary files.
+    /// The bounded scan runs only on request activity; no timer or background service is needed.
+    @discardableResult
+    public func cleanupExpiredRequests(now: Date = Date()) -> Int {
+        guard let entries = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+
+        var inspected = 0
+        var removed = 0
+        while inspected < cleanupLimit, let file = entries.nextObject() as? URL {
+            guard let values = try? file.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]),
+                  values.isRegularFile == true,
+                  let modified = values.contentModificationDate else { continue }
+            inspected += 1
+
+            let name = file.lastPathComponent
+            let shouldRemove: Bool
+            if name.hasSuffix(".pending.json") {
+                if let bytes = try? Data(contentsOf: file),
+                   let request = try? JSONDecoder().decode(OperationRequest.self, from: bytes) {
+                    let age = now.timeIntervalSince(request.createdAt)
+                    shouldRemove = age > ttl || age < -5
+                } else {
+                    shouldRemove = now.timeIntervalSince(modified) > ttl
+                }
+            } else if name.hasSuffix(".processing.json") {
+                // A host operation may outlive the request's claim TTL. Only
+                // reclaim processing files after a day, which indicates a crash.
+                shouldRemove = now.timeIntervalSince(modified) > abandonedProcessingAge
+            } else if name.hasSuffix(".tmp") {
+                shouldRemove = now.timeIntervalSince(modified) > temporaryFileAge
+            } else {
+                continue
+            }
+
+            if shouldRemove, (try? FileManager.default.removeItem(at: file)) != nil {
+                removed += 1
+            }
+        }
+        return removed
     }
 }
 

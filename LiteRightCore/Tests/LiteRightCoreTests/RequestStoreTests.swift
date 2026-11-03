@@ -53,10 +53,9 @@ final class RequestStoreTests: XCTestCase {
         )
         let fresh = OperationRequest(action: .newText, directoryPath: "/tmp", terminalBundleID: nil)
         try store.save(expired)
-        try store.save(fresh)
-
         XCTAssertEqual(store.cleanupExpiredRequests(), 1)
         XCTAssertThrowsError(try store.claim(id: expired.id))
+        try store.save(fresh)
         XCTAssertEqual(try store.claim(id: fresh.id).id, fresh.id)
     }
 }
