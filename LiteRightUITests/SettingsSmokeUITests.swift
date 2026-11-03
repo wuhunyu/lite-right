@@ -201,7 +201,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testFinderCopyURLRunsSilentlyInExistingProcess() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launchArguments = ["--literight-probe-start-headless", "--literight-probe-no-menubar"]
         app.launch()
         defer { app.terminate() }
         XCTAssertFalse(app.windows.firstMatch.exists,
@@ -219,7 +219,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testFinderCopyURLRunsSilentlyOnColdStart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launchArguments = ["--literight-probe-start-headless", "--literight-probe-no-menubar"]
         app.launch() // Register installed test app and URL handler.
         app.terminate()
 

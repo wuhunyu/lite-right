@@ -13,6 +13,12 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     private let dispatcher = OperationDispatcher()
     private var preferencesWindow: NSWindow?
     private var preferencesObservation: AnyCancellable?
+    // An app open should show Settings. A Finder custom URL should not.
+    // LaunchServices may deliver open-URL after didFinishLaunching or reopen,
+    // so use a cancellable, short deferred presentation for ambiguous events.
+    private var pendingSettingsPresentation: Task<Void, Never>?
+    private var receivedURLSinceLaunch = false
+    private var lastURLDelivery: Date = .distantPast
 
     #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
     private func sendPreviewMenuSnapshot() {
@@ -46,17 +52,34 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         }
 
         #if DEBUG
-        // XCUITest requests a settings window explicitly; real URL launches
-        // never carry this flag and are intentionally silent.
+        // UI probes may request a deterministic Settings window or an
+        // intentionally headless host for Finder URL regression tests.
         if ProcessInfo.processInfo.arguments.contains("--literight-probe-show-settings") {
             openPreferences()
+            return
+        }
+        if ProcessInfo.processInfo.arguments.contains("--literight-probe-start-headless") {
+            return
         }
         #endif
+
+        // Ordinary Finder/Spotlight launches must open Settings, even when
+        // both Dock and menu-bar icons are hidden. A cold lite-right://run
+        // delivery cancels this before it can present a window.
+        scheduleSettingsPresentation(after: .milliseconds(850), coldLaunch: true)
     }
 
     /// AppKit delivers both warm and cold custom-URL launches here.
     /// No settings window is created just to receive a Finder action.
     func application(_ application: NSApplication, open urls: [URL]) {
+        // Incoming operations are never implicit requests to show Settings.
+        // Cancel any pending window from application launch/reopen first.
+        if !urls.isEmpty {
+            receivedURLSinceLaunch = true
+            lastURLDelivery = Date()
+            pendingSettingsPresentation?.cancel()
+            pendingSettingsPresentation = nil
+        }
         for url in urls {
             Task { await dispatcher.handleIncomingURL(url) }
         }
@@ -83,10 +106,24 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         statusBar.setVisible(visible)
     }
 
-    // Do not implement applicationShouldHandleReopen: LaunchServices can
-    // send a reopen event while delivering lite-right://run, which would
-    // inadvertently create the Settings window during Finder operations.
-    // Users can explicitly open Settings through the menu-bar item.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        // Double-clicking a running LiteRight.app is a user-facing Settings
+        // request. URL-based Finder operations can also involve LaunchServices,
+        // so the short delay lets their dedicated open-URL event cancel it.
+        scheduleSettingsPresentation(after: .milliseconds(450), coldLaunch: false)
+        return false
+    }
+
+    private func scheduleSettingsPresentation(after delay: Duration, coldLaunch: Bool) {
+        pendingSettingsPresentation?.cancel()
+        pendingSettingsPresentation = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self else { return }
+            if coldLaunch && self.receivedURLSinceLaunch { return }
+            guard Date().timeIntervalSince(self.lastURLDelivery) > 0.7 else { return }
+            self.openPreferences()
+        }
+    }
 
     /// Dock context menus are an explicit way to open Settings without using
     /// the implicit reopen callback (which is also triggered by URL delivery).
