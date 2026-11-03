@@ -187,13 +187,14 @@ final class SettingsSmokeUITests: XCTestCase {
         if checkBoxValue(toggle) == 1 {
             app.typeKey(.space, modifierFlags: [])
         }
+        let toggleGeometry = "type=\(toggle.elementType.rawValue), value=\(String(describing: toggle.value)), selected=\(toggle.isSelected), hittable=\(toggle.isHittable), enabled=\(toggle.isEnabled), frame=\(toggle.frame)"
         let alert = app.alerts.firstMatch
         let saveDeadline = Date().addingTimeInterval(3)
         while Date() < saveDeadline, savedMarkdownVisibility(at: testPreferences) != !baseline {
             RunLoop.current.run(until: Date().addingTimeInterval(0.1))
         }
         XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), !baseline,
-                       "The native toggle must save its changed value; type=\(toggle.elementType.rawValue), value=\(String(describing: toggle.value)), selected=\(toggle.isSelected), alert=\(alert.exists ? alert.label : "none")")
+                       "The native toggle must save its changed value; \(toggleGeometry); alert=\(alert.exists ? alert.label : "none"); accessibility=\(app.debugDescription)")
 
         // Terminate and relaunch: the second click must restore the persisted
         // value, proving the new process loaded it instead of a default.
