@@ -143,6 +143,12 @@ final class SettingsSmokeUITests: XCTestCase {
         return entry["isVisible"] as? Bool
     }
 
+    private func checkBoxValue(_ element: XCUIElement) -> Int? {
+        if let number = element.value as? NSNumber { return number.intValue }
+        if let string = element.value as? String { return Int(string) }
+        return nil
+    }
+
     @MainActor
     func testMenuVisibilityPersistsAcrossAppRestart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
@@ -176,7 +182,7 @@ final class SettingsSmokeUITests: XCTestCase {
         // Hosted macOS XCUITest reports the checkbox click but does not always
         // dispatch it as a state change. Space activates the focused checkbox
         // through the same native accessibility control.
-        if toggle.value as? String == "1" {
+        if checkBoxValue(toggle) == 1 {
             app.typeKey(.space, modifierFlags: [])
         }
         let alert = app.alerts.firstMatch
@@ -196,7 +202,7 @@ final class SettingsSmokeUITests: XCTestCase {
         } else {
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
-        if toggle.value as? String == "0" {
+        if checkBoxValue(toggle) == 0 {
             app.typeKey(.space, modifierFlags: [])
         }
         XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), baseline,
