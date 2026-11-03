@@ -17,9 +17,8 @@ public struct OperationRequest: Codable, Sendable {
         self.directoryPath = directoryPath; self.terminalBundleID = terminalBundleID; self.createdAt = createdAt
     }
 
-    /// Finder has a directory target even for global actions. Hidden-files toggling
-    /// must not forward that path: the preview link rejects it as invalid input.
-    /// Centralizing this mapping keeps signed and unsigned transports consistent.
+    /// File copying keeps the selected file path; directory actions use
+    /// the resolved directory for both signed and unsigned transports.
     public static func forFinderMenu(
         action: MenuItemID,
         directoryURL: URL?,
@@ -30,7 +29,7 @@ public struct OperationRequest: Codable, Sendable {
             ? (copyPathURL ?? directoryURL) : directoryURL
         return OperationRequest(
             action: action,
-            directoryPath: action == .toggleHiddenFiles ? nil : requestedPath?.path,
+            directoryPath: requestedPath?.path,
             terminalBundleID: action == .openInTerminal ? preferredTerminal : nil
         )
     }
@@ -54,7 +53,7 @@ public final class RequestStore {
         directory.appendingPathComponent("\(id.uuidString).\(status).json")
     }
     public func save(_ request: OperationRequest) throws {
-        // MenuItemID is a closed Codable enum: only the five known actions can be decoded.
+        // MenuItemID is a closed Codable enum: only the four supported actions can be decoded.
         // Every Finder menu action is dispatched to the native host outside the sandbox.
         let payload = try JSONEncoder().encode(request)
         let pending = url(request.id, "pending")

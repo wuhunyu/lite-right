@@ -29,13 +29,12 @@ public enum UserHomeDirectory {
 }
 
 public enum MenuItemID: String, CaseIterable, Codable, Sendable, Identifiable {
-    case newText, newMarkdown, toggleHiddenFiles, openInTerminal, copyDirectoryPath
+    case newText, newMarkdown, openInTerminal, copyDirectoryPath
     public var id: String { rawValue }
     public var title: String {
         switch self {
         case .newText: "新建文本文件"
         case .newMarkdown: "新建 Markdown"
-        case .toggleHiddenFiles: "切换隐藏文件显示"
         case .openInTerminal: "在终端中打开"
         case .copyDirectoryPath: "复制绝对路径"
         }
@@ -44,7 +43,6 @@ public enum MenuItemID: String, CaseIterable, Codable, Sendable, Identifiable {
         switch self {
         case .newText: "doc.badge.plus"
         case .newMarkdown: "text.badge.plus"
-        case .toggleHiddenFiles: "eye"
         case .openInTerminal: "terminal"
         case .copyDirectoryPath: "document.on.document"
         }
@@ -85,7 +83,6 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
     public var clearAfterCD: Bool
     public var showMenuBarIcon: Bool
     public var showDockIcon: Bool
-    public var useAccessibilityToggleForHiddenFiles: Bool
     public var monitoredFolderPaths: [String]
 
     public static let `default` = GeneralPreferences(
@@ -95,7 +92,6 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         clearAfterCD: true,
         showMenuBarIcon: true,
         showDockIcon: false,
-        useAccessibilityToggleForHiddenFiles: false,
         monitoredFolderPaths: [UserHomeDirectory.current()].filter { !$0.isEmpty }
     )
 
@@ -109,13 +105,18 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         return copy
     }
 
+    private struct PersistedMenuItem: Decodable {
+        let id: String
+        let isVisible: Bool
+    }
+
     private enum CodingKeys: String, CodingKey {
         case orderedMenuItems, preferredTerminal, selectedShell, clearAfterCD
-        case showMenuBarIcon, showDockIcon, useAccessibilityToggleForHiddenFiles, monitoredFolderPaths
+        case showMenuBarIcon, showDockIcon, monitoredFolderPaths
     }
     public init(orderedMenuItems: [MenuItemPreference], preferredTerminal: TerminalBundle,
                 selectedShell: ShellKind, clearAfterCD: Bool, showMenuBarIcon: Bool,
-                showDockIcon: Bool, useAccessibilityToggleForHiddenFiles: Bool,
+                showDockIcon: Bool,
                 monitoredFolderPaths: [String]) {
         self.orderedMenuItems = orderedMenuItems
         self.preferredTerminal = preferredTerminal
@@ -123,18 +124,21 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         self.clearAfterCD = clearAfterCD
         self.showMenuBarIcon = showMenuBarIcon
         self.showDockIcon = showDockIcon
-        self.useAccessibilityToggleForHiddenFiles = useAccessibilityToggleForHiddenFiles
         self.monitoredFolderPaths = monitoredFolderPaths
     }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        orderedMenuItems = try values.decodeIfPresent([MenuItemPreference].self, forKey: .orderedMenuItems) ?? Self.default.orderedMenuItems
+        // Preserve legacy settings while ignoring removed menu entries.
+        let stored = try values.decodeIfPresent([PersistedMenuItem].self, forKey: .orderedMenuItems)
+        orderedMenuItems = stored?.compactMap { entry in
+            guard let id = MenuItemID(rawValue: entry.id) else { return nil }
+            return MenuItemPreference(id: id, isVisible: entry.isVisible)
+        } ?? Self.default.orderedMenuItems
         preferredTerminal = try values.decodeIfPresent(TerminalBundle.self, forKey: .preferredTerminal) ?? .terminal
         selectedShell = try values.decodeIfPresent(ShellKind.self, forKey: .selectedShell) ?? .systemDefault
         clearAfterCD = try values.decodeIfPresent(Bool.self, forKey: .clearAfterCD) ?? true
         showMenuBarIcon = try values.decodeIfPresent(Bool.self, forKey: .showMenuBarIcon) ?? true
         showDockIcon = try values.decodeIfPresent(Bool.self, forKey: .showDockIcon) ?? false
-        useAccessibilityToggleForHiddenFiles = try values.decodeIfPresent(Bool.self, forKey: .useAccessibilityToggleForHiddenFiles) ?? false
         monitoredFolderPaths = try values.decodeIfPresent([String].self, forKey: .monitoredFolderPaths) ?? [UserHomeDirectory.current()].filter { !$0.isEmpty }
     }
 }

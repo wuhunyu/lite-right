@@ -74,15 +74,12 @@ final class OperationDispatcher: ObservableObject {
             let target = try validatedCopyTarget(request, requireMonitoredRoot: requireMonitoredRoot)
             NSPasteboard.general.clearContents()
             guard NSPasteboard.general.setString(target.path, forType: .string) else {
-                throw LiteRightError.operationFailed("无法复制目录路径。")
+                throw LiteRightError.operationFailed("无法复制绝对路径。")
             }
         case .openInTerminal:
             let directory = try validatedRequestDirectory(request, requireMonitoredRoot: requireMonitoredRoot)
             let preferences = try HostPreferencesStore().load()
             try await TerminalLauncher.openDirectory(directory, preferences: preferences)
-        case .toggleHiddenFiles:
-            let preferences = try HostPreferencesStore().load()
-            try await HiddenFilesController.toggle(preferences: preferences)
         }
     }
 

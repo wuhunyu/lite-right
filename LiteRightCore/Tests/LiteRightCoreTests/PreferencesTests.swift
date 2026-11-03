@@ -2,7 +2,7 @@ import XCTest
 @testable import LiteRightCore
 
 final class PreferencesTests: XCTestCase {
-    func testDefaultsHaveAllFiveVisibleMenuItems() {
+    func testDefaultsHaveAllFourVisibleMenuItems() {
         XCTAssertEqual(GeneralPreferences.default.orderedMenuItems.map(\.id), MenuItemID.allCases)
         XCTAssertTrue(GeneralPreferences.default.orderedMenuItems.allSatisfy(\.isVisible))
     }

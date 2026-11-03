@@ -24,7 +24,7 @@ final class FinderActionTagTests: XCTestCase {
 
     func testUnsupportedTagsAndToolbarNeverBecomeOperations() {
         XCTAssertNil(FinderActionTag.tag(for: .newMarkdown, context: .toolbar))
-        for tag in [-1, 0, 1, 99, 100, 106, 199, 206, 299, 306, 399, 401, 999, 10101] {
+        for tag in [-1, 0, 1, 99, 100, 103, 106, 199, 203, 206, 299, 303, 306, 399, 401, 999, 10101] {
             XCTAssertNil(FinderActionTag.resolve(tag: tag), "Unexpected tag: \(tag)")
         }
     }

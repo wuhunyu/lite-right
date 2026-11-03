@@ -105,13 +105,13 @@ final class SettingsSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    func testInitialMenuPageContainsAllFiveActions() throws {
+    func testInitialMenuPageContainsAllFourActions() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20))
         // Do not mutate real user preferences; only inspect the app's first page.
-        for name in ["新建文本文件", "新建 Markdown", "切换隐藏文件显示", "在终端中打开", "复制目录路径"] {
+        for name in ["新建文本文件", "新建 Markdown", "在终端中打开", "复制绝对路径"] {
             XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 5),
                           "Expected the Finder action in the Settings list: \(name)")
         }

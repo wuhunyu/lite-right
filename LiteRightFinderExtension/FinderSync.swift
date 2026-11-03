@@ -100,15 +100,12 @@ final class FinderSync: FIFinderSync {
         let menu = NSMenu(title: "LiteRight")
         for preference in pref.orderedMenuItems where preference.isVisible {
             let id = preference.id
-            let hiddenPresentation = FinderHiddenFilesState.menuPresentation(
-                showing: FinderHiddenFilesState.isShowingHiddenFiles()
-            )
             let title: String = id == .openInTerminal
                 ? "在 \(pref.preferredTerminal.title) 打开"
-                : (id == .toggleHiddenFiles ? hiddenPresentation.title : id.title)
+                : id.title
             let item = NSMenuItem(title: title, action: #selector(performAction(_:)), keyEquivalent: "")
             item.target = self
-            if let symbol = NSImage(systemSymbolName: id == .toggleHiddenFiles ? hiddenPresentation.symbol : id.symbol, accessibilityDescription: title) {
+            if let symbol = NSImage(systemSymbolName: id.symbol, accessibilityDescription: title) {
                 symbol.isTemplate = true
                 item.image = symbol
             }
@@ -116,8 +113,8 @@ final class FinderSync: FIFinderSync {
             // are not preserved. The integer tag survives the copy.
             guard let actionTag = FinderActionTag.tag(for: id, context: context) else { continue }
             item.tag = actionTag
-            item.isEnabled = id == .toggleHiddenFiles ||
-                (id == .copyDirectoryPath ? target.allowsCopyPath : target.directoryURL != nil)
+            item.isEnabled = id == .copyDirectoryPath
+                ? target.allowsCopyPath : target.directoryURL != nil
             menu.addItem(item)
         }
         logger.notice("menu_result item_count=\(menu.items.count)")
@@ -139,9 +136,8 @@ final class FinderSync: FIFinderSync {
             selectedItemURLs: controller.selectedItemURLs()
         )
         logger.notice("finder_action_selected action=\(selection.action.rawValue, privacy: .public) target_available=\(target.directoryURL != nil)")
-        guard selection.action == .toggleHiddenFiles ||
-                (selection.action == .copyDirectoryPath
-                    ? target.allowsCopyPath : target.directoryURL != nil) else {
+        guard (selection.action == .copyDirectoryPath
+                ? target.allowsCopyPath : target.directoryURL != nil) else {
             logger.error("finder_action_failed target_unavailable")
             NSSound.beep()
             return

@@ -66,17 +66,13 @@ public enum PreviewRequestLink {
               request.createdAt.timeIntervalSince(now) <= futureTolerance else {
             throw LiteRightError.requestExpired
         }
-        if request.action == .toggleHiddenFiles {
-            guard request.directoryPath == nil else { throw LiteRightError.invalidDirectory }
-        } else {
-            guard let path = request.directoryPath,
-                  path.hasPrefix("/"), !path.hasPrefix("//"), path != "/",
-                  path.utf8.count <= maxDirectoryBytes,
-                  !path.contains("\0"),
-                  !path.split(separator: "/", omittingEmptySubsequences: false)
-                       .contains(where: { $0 == "." || $0 == ".." }) else {
-                throw LiteRightError.invalidDirectory
-            }
+        guard let path = request.directoryPath,
+              path.hasPrefix("/"), !path.hasPrefix("//"), path != "/",
+              path.utf8.count <= maxDirectoryBytes,
+              !path.contains("\0"),
+              !path.split(separator: "/", omittingEmptySubsequences: false)
+                   .contains(where: { $0 == "." || $0 == ".." }) else {
+            throw LiteRightError.invalidDirectory
         }
     }
 }
