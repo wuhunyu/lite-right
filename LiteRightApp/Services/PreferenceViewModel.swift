@@ -28,6 +28,8 @@ final class PreferenceViewModel: ObservableObject {
         var updated = value
         change(&updated)
         updated = updated.normalized()
+        guard updated != value else { return }
+        updated.advanceRevision()
         let monitoredRootsChanged = updated.monitoredFolderPaths != value.monitoredFolderPaths
         do {
             // Commit canonical user settings independently of App Group privileges.

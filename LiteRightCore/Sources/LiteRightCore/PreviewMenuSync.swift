@@ -7,9 +7,17 @@ public enum PreviewMenuSync {
     public static let maximumBytes = 32_768
 
     public static func encode(_ value: GeneralPreferences) -> String? {
+        guard value.schemaVersion == GeneralPreferences.currentSchemaVersion else { return nil }
         guard let data = try? JSONEncoder().encode(value.normalized()),
               data.count <= maximumBytes else { return nil }
         return data.base64EncodedString()
+    }
+
+    /// Accepts the first snapshot or one at least as new as the currently applied revision.
+    public static func shouldApply(_ candidate: GeneralPreferences, over current: GeneralPreferences?) -> Bool {
+        guard candidate.schemaVersion == GeneralPreferences.currentSchemaVersion else { return false }
+        guard let current else { return true }
+        return current.schemaVersion == candidate.schemaVersion && candidate.revision >= current.revision
     }
 
     public static func decode(_ encoded: String?) -> GeneralPreferences? {
@@ -18,7 +26,8 @@ public enum PreviewMenuSync {
               let value = try? JSONDecoder().decode(GeneralPreferences.self, from: data)
         else { return nil }
         let result = value.normalized()
-        guard result.monitoredFolderPaths.count <= 64,
+        guard result.schemaVersion == GeneralPreferences.currentSchemaVersion,
+              result.monitoredFolderPaths.count <= 64,
               result.orderedMenuItems.count == MenuItemID.allCases.count else { return nil }
         return result
     }

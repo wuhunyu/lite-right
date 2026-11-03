@@ -29,4 +29,15 @@ final class PreferenceSnapshotVersionTests: XCTestCase {
 
         XCTAssertThrowsError(try JSONDecoder().decode(GeneralPreferences.self, from: future))
     }
+
+    func testOlderPreviewRevisionCannotReplaceNewerPreferences() {
+        var current = GeneralPreferences.default
+        current.revision = 9
+        var stale = current
+        stale.revision = 8
+
+        XCTAssertFalse(PreviewMenuSync.shouldApply(stale, over: current))
+        XCTAssertTrue(PreviewMenuSync.shouldApply(current, over: nil))
+        XCTAssertTrue(PreviewMenuSync.shouldApply(current, over: current))
+    }
 }

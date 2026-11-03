@@ -77,6 +77,9 @@ public struct MenuItemPreference: Codable, Equatable, Sendable, Identifiable {
 }
 
 public struct GeneralPreferences: Codable, Equatable, Sendable {
+    public static let currentSchemaVersion = 1
+    public var schemaVersion: Int
+    public var revision: UInt64
     public var orderedMenuItems: [MenuItemPreference]
     public var preferredTerminal: TerminalBundle
     public var selectedShell: ShellKind
@@ -105,19 +108,28 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
         return copy
     }
 
+    /// Advances the snapshot revision after a real user-visible preference change.
+    public mutating func advanceRevision() {
+        if revision < UInt64.max { revision += 1 }
+    }
+
     private struct PersistedMenuItem: Decodable {
         let id: String
         let isVisible: Bool
     }
 
     private enum CodingKeys: String, CodingKey {
-        case orderedMenuItems, preferredTerminal, selectedShell, clearAfterCD
+        case schemaVersion, revision, orderedMenuItems, preferredTerminal, selectedShell, clearAfterCD
         case showMenuBarIcon, showDockIcon, monitoredFolderPaths
     }
     public init(orderedMenuItems: [MenuItemPreference], preferredTerminal: TerminalBundle,
                 selectedShell: ShellKind, clearAfterCD: Bool, showMenuBarIcon: Bool,
                 showDockIcon: Bool,
-                monitoredFolderPaths: [String]) {
+                monitoredFolderPaths: [String],
+                schemaVersion: Int = GeneralPreferences.currentSchemaVersion,
+                revision: UInt64 = 0) {
+        self.schemaVersion = schemaVersion
+        self.revision = revision
         self.orderedMenuItems = orderedMenuItems
         self.preferredTerminal = preferredTerminal
         self.selectedShell = selectedShell
@@ -128,6 +140,16 @@ public struct GeneralPreferences: Codable, Equatable, Sendable {
     }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try values.decodeIfPresent(Int.self, forKey: .schemaVersion)
+            ?? Self.currentSchemaVersion
+        guard schemaVersion == Self.currentSchemaVersion else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .schemaVersion,
+                in: values,
+                debugDescription: "Unsupported LiteRight preferences schema version: \(schemaVersion)"
+            )
+        }
+        revision = try values.decodeIfPresent(UInt64.self, forKey: .revision) ?? 0
         // Preserve legacy settings while ignoring removed menu entries.
         let stored = try values.decodeIfPresent([PersistedMenuItem].self, forKey: .orderedMenuItems)
         orderedMenuItems = stored?.compactMap { entry in
