@@ -41,8 +41,8 @@ do {
                 "Generated app plist derives build from CURRENT_PROJECT_VERSION")
     try require(extensionInfo["CFBundleVersion"] as? String == "$(CURRENT_PROJECT_VERSION)",
                 "Generated extension plist derives build from CURRENT_PROJECT_VERSION")
-    try require(app["LiteRightReleaseChannel"] as? String == "preview",
-                "Generated app plist preserves preview channel")
+    try require(app["LiteRightReleaseChannel"] as? String == "$(LITERIGHT_RELEASE_CHANNEL)",
+                "Generated app plist derives release channel from build setting")
 
     let finder = extensionInfo["NSExtension"] as? [String: Any]
     try require(finder?["NSExtensionPointIdentifier"] as? String == "com.apple.FinderSync",

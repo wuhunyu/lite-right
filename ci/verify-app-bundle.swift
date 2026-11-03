@@ -24,9 +24,11 @@ func infoDictionary(at bundle: URL) throws -> [String: Any] {
 }
 
 func check() throws {
-    guard CommandLine.arguments.count == 2 else {
-        throw BundleCheckError.invalid("Usage: swift ci/verify-app-bundle.swift /path/to/LiteRight.app")
+    guard (2...3).contains(CommandLine.arguments.count) else {
+        throw BundleCheckError.invalid("Usage: swift ci/verify-app-bundle.swift /path/to/LiteRight.app [preview|release]")
     }
+    let channel = CommandLine.arguments.count == 3 ? CommandLine.arguments[2] : "preview"
+    try require(channel == "preview" || channel == "release", "Supported release channel")
     let app = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
     let finder = app.appendingPathComponent("Contents/PlugIns/LiteRightFinderExtension.appex", isDirectory: true)
     let appInfo = try infoDictionary(at: app)
@@ -39,8 +41,8 @@ func check() throws {
     try require(FileManager.default.isExecutableFile(atPath: app.appendingPathComponent("Contents/MacOS/LiteRight").path), "Main app contains executable")
     try require(appInfo["LSUIElement"] as? Bool == true, "Menu-bar/accessory activation is configured")
     try require(hasScheme, "lite-right:// URL scheme is registered")
-    try require(appInfo["CFBundleShortVersionString"] as? String == "1.0.0", "Preview marketing version 1.0.0")
-    try require(appInfo["LiteRightReleaseChannel"] as? String == "preview", "Preview channel metadata")
+    try require(appInfo["CFBundleShortVersionString"] as? String == "1.0.0", "Marketing version 1.0.0")
+    try require(appInfo["LiteRightReleaseChannel"] as? String == channel, "Expected channel metadata: \(channel)")
     try require(appInfo["CFBundleShortVersionString"] as? String == extInfo["CFBundleShortVersionString"] as? String, "App and extension marketing versions match")
     try require(appInfo["CFBundleVersion"] as? String == extInfo["CFBundleVersion"] as? String, "App and extension build numbers match")
     try require(finder.pathExtension == "appex", "Embedded Finder extension exists")

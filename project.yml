@@ -9,6 +9,7 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "27.0"
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES
+    LITERIGHT_RELEASE_CHANNEL: preview
 packages:
   LiteRightCore:
     path: LiteRightCore
@@ -30,7 +31,7 @@ targets:
         LSUIElement: true
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        LiteRightReleaseChannel: preview
+        LiteRightReleaseChannel: "$(LITERIGHT_RELEASE_CHANNEL)"
         NSAppleEventsUsageDescription: "LiteRight 需要在用户点击操作后打开新的终端窗口。"
     entitlements:
       path: LiteRightApp/LiteRight.entitlements
