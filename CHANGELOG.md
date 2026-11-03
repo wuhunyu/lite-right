@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-03 — Finder hidden-file shortcut PID routing preview
+
+- Merge PR #21: post all six CoreGraphics Command-Shift-Period physical events directly to the Finder process PID rather than the global HID event tap, reducing focus timing dependency from URL activation.
+- TDD: expected RED on the missing PID delivery API, then macOS Swift tests and arm64 preview packaging passed. Added tests for correct event destination and invalid PID.
+- Existing permission checks and Finder state-change verification remain. This is a developer preview, **not** real Finder interaction acceptance: #3, #13, #19 stay open pending user-machine verification.
+- [publish-preview] is used for this checkpoint so the matching test package can be installed for real-device verification.
+
+
 ## 2026-10-30 — macOS developer preview (Finder menu synchronization)
 
 - Merge #20 into `main`: reload the Finder menu's visibility, order and chosen Terminal/iTerm2 label from updated settings in the unsigned preview.
