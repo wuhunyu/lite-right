@@ -50,11 +50,8 @@ enum HiddenFilesController {
         // Check the Finder preference before and after the shortcut. Posting
         // Quartz events has no return value that proves Finder handled them.
         let before = currentState()
-        let events = try FinderHiddenFileShortcut.makeEvents()
-        logger.notice("hidden_toggle_posting finder_pid=\(finderPID) previous_state=\(String(describing: before), privacy: .public)")
-        for event in events {
-            event.post(tap: .cghidEventTap)
-        }
+        logger.notice("hidden_toggle_posting finder_pid=\(finderPID) delivery=target_pid previous_state=\(String(describing: before), privacy: .public)")
+        try FinderHiddenFileShortcut.post(to: finderPID)
 
         for _ in 0..<16 {
             try await Task.sleep(for: .milliseconds(90))
