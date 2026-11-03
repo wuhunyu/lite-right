@@ -159,11 +159,21 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
 
             let created = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
-            created.title = "LiteRight 设置"
+            created.title = "LiteRight"
+            // A full-size content view lets the sidebar material extend
+            // underneath the traffic-light region. The toolbar reserves the
+            // titlebar safe area for the SwiftUI navigation/detail content.
+            created.titleVisibility = .visible
+            created.titlebarAppearsTransparent = true
+            created.titlebarSeparatorStyle = .none
+            created.toolbarStyle = .unified
+            let toolbar = NSToolbar(identifier: "LiteRightSettingsToolbar")
+            toolbar.allowsUserCustomization = false
+            created.toolbar = toolbar
             created.contentViewController = NSHostingController(
                 rootView: content.frame(minWidth: 640, minHeight: 420)
             )
