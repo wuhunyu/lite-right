@@ -168,12 +168,12 @@ final class SettingsSmokeUITests: XCTestCase {
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
                       "The menu visibility toggle must be accessible")
-        if toggle.isHittable {
-            toggle.click()
-        } else {
-            // Hosted macOS accessibility can expose a valid checkbox without
-            // reporting it as hittable; use its actual screen coordinate.
-            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        toggle.click()
+        // Hosted macOS XCUITest reports the checkbox click but does not always
+        // dispatch it as a state change. Space activates the focused checkbox
+        // through the same native accessibility control.
+        if toggle.value as? String == "1" {
+            toggle.typeKey(.space, modifierFlags: [])
         }
         let alert = app.alerts.firstMatch
         XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), !baseline,
@@ -187,12 +187,9 @@ final class SettingsSmokeUITests: XCTestCase {
         toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
-        if toggle.isHittable {
-            toggle.click()
-        } else {
-            // Hosted macOS accessibility can expose a valid checkbox without
-            // reporting it as hittable; use its actual screen coordinate.
-            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        toggle.click()
+        if toggle.value as? String == "0" {
+            toggle.typeKey(.space, modifierFlags: [])
         }
         XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), baseline,
                        "The relaunched app must use the saved preference")
