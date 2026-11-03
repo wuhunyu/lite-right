@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-03 — 当前版本：移除隐藏文件功能，完成复制绝对路径链路
+
+- 按产品范围调整，删除显示/隐藏文件右键菜单、执行逻辑、辅助功能设置及测试；此前模拟快捷键和重启兼容方案不再提供。
+- 兼容旧版配置中的 `toggleHiddenFiles`，迁移时只丢弃该菜单条目，保留其余用户排序、显隐及终端首选项。
+- 复制绝对路径：空白处复制当前目录、选中目录复制目录、选中单文件复制文件完整路径，支持中文和空格；新建文件和终端操作仍使用正确的目录。
+- 增加真实 macOS GUI 预览版剪贴板链路测试；Finder 签名实机交互仍属 #3 的验收范围。
+
+
 ## 2026-11-03 — Finder hidden-file shortcut PID routing preview
 
 - Merge PR #21: post all six CoreGraphics Command-Shift-Period physical events directly to the Finder process PID rather than the global HID event tap, reducing focus timing dependency from URL activation.

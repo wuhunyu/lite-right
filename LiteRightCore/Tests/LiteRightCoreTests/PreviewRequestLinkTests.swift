@@ -3,10 +3,9 @@ import XCTest
 @testable import LiteRightCore
 
 final class PreviewRequestLinkTests: XCTestCase {
-    func testRoundTripsAllFiveActionsWithUnicodeAndShellMetacharactersInDirectory() throws {
+    func testRoundTripsAllFourActionsWithUnicodeAndShellMetacharactersInDirectory() throws {
         for action in MenuItemID.allCases {
-            let target = action == .toggleHiddenFiles ? nil :
-                "/Users/fixture/项目 & 测试's \"quoted\" $(date)"
+            let target = "/Users/fixture/项目 & 测试's \"quoted\" $(date)"
             let original = OperationRequest(
                 action: action,
                 directoryPath: target,
@@ -53,22 +52,8 @@ final class PreviewRequestLinkTests: XCTestCase {
                                            terminalBundleID: nil)
             XCTAssertThrowsError(try PreviewRequestLink.encode(request), "Accepted \(path.prefix(40))")
         }
-        let invalidToggle = OperationRequest(action: .toggleHiddenFiles, directoryPath: "/tmp",
-                                             terminalBundleID: nil)
-        XCTAssertThrowsError(try PreviewRequestLink.encode(invalidToggle))
     }
 
-
-    func testFinderMenuToggleRequestHasNoDirectoryEvenWhenFinderHasTarget() throws {
-        let folder = URL(fileURLWithPath: "/Users/fixture/Documents", isDirectory: true)
-        let request = OperationRequest.forFinderMenu(
-            action: .toggleHiddenFiles,
-            directoryURL: folder,
-            preferredTerminal: .terminal
-        )
-        XCTAssertNil(request.directoryPath)
-        XCTAssertNoThrow(try PreviewRequestLink.encode(request))
-    }
 
     func testFinderMenuPathActionsKeepDirectoryAndSelectedTerminal() throws {
         let folder = URL(fileURLWithPath: "/Users/fixture/My Projects", isDirectory: true)

@@ -17,7 +17,6 @@ public enum FinderActionTag {
         switch action {
         case .newText: actionCode = 1
         case .newMarkdown: actionCode = 2
-        case .toggleHiddenFiles: actionCode = 3
         case .openInTerminal: actionCode = 4
         case .copyDirectoryPath: actionCode = 5
         }
@@ -36,7 +35,6 @@ public enum FinderActionTag {
         switch tag % 100 {
         case 1: action = .newText
         case 2: action = .newMarkdown
-        case 3: action = .toggleHiddenFiles
         case 4: action = .openInTerminal
         case 5: action = .copyDirectoryPath
         default: return nil

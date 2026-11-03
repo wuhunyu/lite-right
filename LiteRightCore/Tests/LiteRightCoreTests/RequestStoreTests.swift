@@ -13,7 +13,7 @@ final class RequestStoreTests: XCTestCase {
         try store.complete(id: req.id)
         XCTAssertThrowsError(try store.claim(id: req.id))
     }
-    func testAllFiveFinderActionsAreBrokeredExactlyOnce() throws {
+    func testAllFourFinderActionsAreBrokeredExactlyOnce() throws {
         for action in MenuItemID.allCases {
             let folder = FileManager.default.temporaryDirectory
                 .appendingPathComponent("lite-right-request-\(UUID().uuidString)", isDirectory: true)
@@ -21,7 +21,7 @@ final class RequestStoreTests: XCTestCase {
             let store = try RequestStore(baseDirectory: folder)
             let request = OperationRequest(
                 action: action,
-                directoryPath: action == .toggleHiddenFiles ? nil : "/tmp",
+                directoryPath: "/tmp",
                 terminalBundleID: action == .openInTerminal ? .terminal : nil
             )
             try store.save(request)
@@ -38,7 +38,7 @@ final class RequestStoreTests: XCTestCase {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let store = try RequestStore(baseDirectory: root)
-        let req = OperationRequest(action: .toggleHiddenFiles, directoryPath: nil, terminalBundleID: nil, createdAt: Date(timeIntervalSinceNow: -120))
+        let req = OperationRequest(action: .copyDirectoryPath, directoryPath: "/tmp", terminalBundleID: nil, createdAt: Date(timeIntervalSinceNow: -120))
         try store.save(req)
         XCTAssertThrowsError(try store.claim(id: req.id))
     }

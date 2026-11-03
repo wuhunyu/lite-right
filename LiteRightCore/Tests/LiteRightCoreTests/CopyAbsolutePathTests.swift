@@ -6,7 +6,7 @@ final class CopyAbsolutePathTests: XCTestCase {
 
     override func setUpWithError() throws {
         directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("LiteRightCopy-(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("LiteRightCopy-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     }
 
