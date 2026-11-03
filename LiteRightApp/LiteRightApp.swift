@@ -189,7 +189,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
             )
             created.isReleasedWhenClosed = false
             created.center()
-            if let visibleFrame = (created.screen ?? NSScreen.main)?.visibleFrame {
+            if let visibleFrame = NSScreen.main?.visibleFrame ?? NSScreen.screens.first?.visibleFrame {
                 var frame = created.frame
                 frame.origin.x = min(max(frame.origin.x, visibleFrame.minX),
                                      max(visibleFrame.minX, visibleFrame.maxX - frame.width))
