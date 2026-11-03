@@ -71,9 +71,9 @@ final class OperationDispatcher: ObservableObject {
                 in: directory, template: request.action == .newText ? .text : .markdown
             )
         case .copyDirectoryPath:
-            let directory = try validatedRequestDirectory(request, requireMonitoredRoot: requireMonitoredRoot)
+            let target = try validatedCopyTarget(request, requireMonitoredRoot: requireMonitoredRoot)
             NSPasteboard.general.clearContents()
-            guard NSPasteboard.general.setString(directory.path, forType: .string) else {
+            guard NSPasteboard.general.setString(target.path, forType: .string) else {
                 throw LiteRightError.operationFailed("无法复制目录路径。")
             }
         case .openInTerminal:
@@ -84,6 +84,34 @@ final class OperationDispatcher: ObservableObject {
             let preferences = try HostPreferencesStore().load()
             try await HiddenFilesController.toggle(preferences: preferences)
         }
+    }
+
+    private func validatedCopyTarget(
+        _ request: OperationRequest, requireMonitoredRoot: Bool
+    ) throws -> URL {
+        guard let rawPath = request.directoryPath,
+              let target = TargetResolver.validatedCopyTarget(URL(fileURLWithPath: rawPath))
+        else { throw LiteRightError.invalidDirectory }
+
+        if requireMonitoredRoot {
+            // The preview URL is forgeable. Authorize against the real
+            // containing directory, not against an untrusted file path string.
+            let isDirectory = (try? target.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+            let containing = isDirectory ? target : target.deletingLastPathComponent()
+            guard let verifiedDirectory = TargetResolver.validatedDirectory(containing) else {
+                throw LiteRightError.invalidDirectory
+            }
+            let preferences = try HostPreferencesStore().load()
+            let roots = Set(preferences.monitoredFolderPaths.compactMap {
+                TargetResolver.validatedDirectory(URL(fileURLWithPath: $0, isDirectory: true))
+            })
+            guard MonitoredFolders.covers(verifiedDirectory, registeredRoots: roots) else {
+                throw LiteRightError.operationFailed(
+                    "请求的文件或目录不在 LiteRight 配置的 Finder 监控范围内。"
+                )
+            }
+        }
+        return target
     }
 
     private func validatedRequestDirectory(

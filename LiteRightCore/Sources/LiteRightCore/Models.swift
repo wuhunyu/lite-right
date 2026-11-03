@@ -37,7 +37,7 @@ public enum MenuItemID: String, CaseIterable, Codable, Sendable, Identifiable {
         case .newMarkdown: "新建 Markdown"
         case .toggleHiddenFiles: "切换隐藏文件显示"
         case .openInTerminal: "在终端中打开"
-        case .copyDirectoryPath: "复制目录路径"
+        case .copyDirectoryPath: "复制绝对路径"
         }
     }
     public var symbol: String {
@@ -167,11 +167,13 @@ public final class SharedPreferences: @unchecked Sendable {
 public struct ResolvedTarget: Equatable, Sendable {
     public enum SourceKind: String, Sendable { case blankArea, files, folder, mixed, unsupported }
     public let directoryURL: URL?
+    public let copyPathURL: URL?
     public let sourceKind: SourceKind
     public var allowsDirectoryActions: Bool { directoryURL != nil }
-    public var allowsCopyPath: Bool { directoryURL != nil }
-    public init(directoryURL: URL?, sourceKind: SourceKind) {
+    public var allowsCopyPath: Bool { copyPathURL != nil }
+    public init(directoryURL: URL?, sourceKind: SourceKind, copyPathURL: URL? = nil) {
         self.directoryURL = directoryURL
+        self.copyPathURL = copyPathURL ?? directoryURL
         self.sourceKind = sourceKind
     }
 }
