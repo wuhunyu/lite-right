@@ -55,6 +55,7 @@ public final class RequestStore {
     private let abandonedProcessingAge: TimeInterval = 24 * 60 * 60
     private let temporaryFileAge: TimeInterval = 10 * 60
     private let cleanupLimit = 128
+    private let maximumRequestFileSize = 16 * 1024
     public convenience init(appGroupIdentifier: String = SharedPreferences.suiteName) throws {
         guard let base = FileManager.default.containerURLForLiteRightGroup(identifier: appGroupIdentifier) else {
             throw LiteRightError.requestUnavailable
@@ -121,14 +122,14 @@ public final class RequestStore {
     public func cleanupExpiredRequests(now: Date = Date()) -> Int {
         guard let entries = FileManager.default.enumerator(
             at: directory,
-            includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey],
-            options: [.skipsHiddenFiles]
+            includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey, .fileSizeKey],
+            options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants]
         ) else { return 0 }
 
         var inspected = 0
         var removed = 0
         while inspected < cleanupLimit, let file = entries.nextObject() as? URL {
-            guard let values = try? file.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]),
+            guard let values = try? file.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey, .fileSizeKey]),
                   values.isRegularFile == true,
                   let modified = values.contentModificationDate else { continue }
             inspected += 1
@@ -136,7 +137,8 @@ public final class RequestStore {
             let name = file.lastPathComponent
             let shouldRemove: Bool
             if name.hasSuffix(".pending.json") {
-                if let bytes = try? Data(contentsOf: file),
+                if let size = values.fileSize, size <= maximumRequestFileSize,
+                   let bytes = try? Data(contentsOf: file),
                    let request = try? JSONDecoder().decode(OperationRequest.self, from: bytes) {
                     let age = now.timeIntervalSince(request.createdAt)
                     shouldRemove = age > ttl || age < -5

@@ -1,6 +1,8 @@
 # LiteRight
 
-## 正式版本 v1.0.0（未公证）
+## 已发布版本 v1.0.0（未公证）
+
+v1.0.1 正在进行兼容性重构与性能优化，尚未发布。
 
 - [GitHub Releases v1.0.0](https://github.com/wuhunyu/lite-right/releases/tag/v1.0.0)：macOS 27+、Apple Silicon（arm64），ZIP/DMG，附 SHA-256 校验文件。
 - **警告：安装包采用 ad-hoc 临时签名，没有 Developer ID 签名和 Apple 公证。** 用户需自行核实来源、同意 macOS 安全提示后才能打开；Finder 扩展授权不保证自动通过。
@@ -64,9 +66,9 @@ Finder Sync 的右键菜单作用域由已登记监控目录决定，扩展无�
 
 请使用 [Finder Sync 签名安装与实机验收指南](docs/finder-real-machine-acceptance.md)，以 `swift ci/verify-signed-app.swift /path/to/LiteRight.app` 验证主应用及扩展签名、TeamIdentifier 与 App Group，再将截图和测试结果填写进 [P0 验收矩阵](docs/p0-matrix.md)。**完整签名 / 公证 / Finder 扩展验收仍为 No-Go；v1.0.0 为公开且明确披露风险的 ad-hoc 发行版，不代表通过上述门禁。**
 
-## 1.0.0-preview 版本与诊断
+## 1.0.1-preview 版本与诊断
 
-- 用户界面版本显示 `1.0.0-preview`，系统 `CFBundleShortVersionString` 为 `1.0.0`，`LiteRightReleaseChannel` 为 `preview`，构建号保持数字格式。
+- 用户界面版本显示 `1.0.1-preview`，系统 `CFBundleShortVersionString` 为 `1.0.1`，`LiteRightReleaseChannel` 为 `preview`，构建号保持数字格式。
 - Finder 扩展管理入口已移入「通用 → 系统集成」。终端 AppleScript 自动化授权能力仍保留。
 - 「关于 → 复制诊断信息」包含系统、CPU 架构、Finder 系统报告状态、通信通道和监控目录数量，不包含用户名及监控路径。
 - 菜单栏图标使用品牌 SVG 的单色模板变体。

@@ -4,13 +4,24 @@ import XCTest
 
 final class AsyncProcessRunnerTests: XCTestCase {
     func testReturnsExitStatusWithoutBlockingCaller() async throws {
-        let status = try await AsyncProcessRunner.run(
+        let result = try await AsyncProcessRunner.run(
             executableURL: URL(fileURLWithPath: "/usr/bin/true"),
             arguments: [],
             timeout: .seconds(2)
         )
 
-        XCTAssertEqual(status, 0)
+        XCTAssertEqual(result.terminationStatus, 0)
+    }
+
+    func testCapturesStandardErrorWithoutPipeDeadlock() async throws {
+        let result = try await AsyncProcessRunner.run(
+            executableURL: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "printf 'terminal diagnostic' >&2"],
+            timeout: .seconds(2)
+        )
+
+        XCTAssertEqual(result.terminationStatus, 0)
+        XCTAssertEqual(result.standardError, "terminal diagnostic")
     }
 
     func testTerminatesProcessWhenTimeoutExpires() async {

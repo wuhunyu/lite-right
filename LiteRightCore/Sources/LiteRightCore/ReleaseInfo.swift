@@ -2,7 +2,7 @@ import Foundation
 
 public enum ReleaseInfo {
     public static func displayVersion(marketingVersion: String, channel: String) -> String {
-        let version = marketingVersion.isEmpty ? "1.0.0" : marketingVersion
+        let version = marketingVersion.isEmpty ? "未知版本" : marketingVersion
         return channel == "preview" ? "\(version)-preview" : version
     }
 
