@@ -80,8 +80,7 @@ private actor ProcessWaitState {
         self.stderrURL = outputURL
         self.continuation = continuation
         process.standardError = outputHandle
-        process.terminationHandler = { [weak self] _ in
-            guard let self else { return }
+        process.terminationHandler = { [self] _ in
             Task { await self.processDidTerminate() }
         }
 
@@ -123,6 +122,7 @@ private actor ProcessWaitState {
     private func processDidTerminate() {
         timeoutTask?.cancel()
         forceKillTask?.cancel()
+        process?.terminationHandler = nil
 
         try? stderrHandle?.close()
         let errorText = stderrURL.flatMap { try? Data(contentsOf: $0) }
