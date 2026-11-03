@@ -46,6 +46,8 @@ final class SettingsSmokeUITests: XCTestCase {
         let general = app.staticTexts["通用"].firstMatch
         XCTAssertTrue(general.waitForExistence(timeout: 20))
         general.click()
+        XCTAssertTrue(app.buttons["管理 Finder 扩展"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["权限管理"].exists)
         XCTAssertTrue(app.buttons["添加监控目录"].firstMatch.waitForExistence(timeout: 10),
                       "The native General settings page must allow adding monitored Finder roots")
     }
