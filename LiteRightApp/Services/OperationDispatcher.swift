@@ -86,8 +86,9 @@ final class OperationDispatcher: ObservableObject {
     private func validatedCopyTarget(
         _ request: OperationRequest, requireMonitoredRoot: Bool
     ) throws -> URL {
-        guard let rawPath = request.directoryPath,
-              let target = TargetResolver.validatedCopyTarget(URL(fileURLWithPath: rawPath))
+        guard let operationTarget = request.operationTarget,
+              case let .absolutePath(rawTarget) = operationTarget,
+              let target = TargetResolver.validatedCopyTarget(rawTarget)
         else { throw LiteRightError.invalidDirectory }
 
         if requireMonitoredRoot {
@@ -114,10 +115,9 @@ final class OperationDispatcher: ObservableObject {
     private func validatedRequestDirectory(
         _ request: OperationRequest, requireMonitoredRoot: Bool
     ) throws -> URL {
-        guard let rawPath = request.directoryPath,
-              let directory = TargetResolver.validatedDirectory(
-                URL(fileURLWithPath: rawPath, isDirectory: true)
-              ) else {
+        guard let operationTarget = request.operationTarget,
+              case let .directory(rawDirectory) = operationTarget,
+              let directory = TargetResolver.validatedDirectory(rawDirectory) else {
             throw LiteRightError.invalidDirectory
         }
         if requireMonitoredRoot {

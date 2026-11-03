@@ -12,6 +12,15 @@ public struct OperationRequest: Codable, Sendable {
     public let directoryPath: String?
     public let terminalBundleID: TerminalBundle?
     public let createdAt: Date
+    public var operationTarget: OperationTarget? {
+        guard let directoryPath, directoryPath.hasPrefix("/"), !directoryPath.contains("\0") else {
+            return nil
+        }
+        if action == .copyDirectoryPath {
+            return .absolutePath(URL(fileURLWithPath: directoryPath).standardizedFileURL)
+        }
+        return .directory(URL(fileURLWithPath: directoryPath, isDirectory: true).standardizedFileURL)
+    }
     public init(id: UUID = UUID(), action: MenuItemID, directoryPath: String?, terminalBundleID: TerminalBundle?, createdAt: Date = Date()) {
         schemaVersion = 1; self.id = id; self.action = action
         self.directoryPath = directoryPath; self.terminalBundleID = terminalBundleID; self.createdAt = createdAt
@@ -33,6 +42,11 @@ public struct OperationRequest: Codable, Sendable {
             terminalBundleID: action == .openInTerminal ? preferredTerminal : nil
         )
     }
+}
+
+public enum OperationTarget: Equatable, Sendable {
+    case directory(URL)
+    case absolutePath(URL)
 }
 
 public final class RequestStore {

@@ -17,8 +17,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     // LaunchServices may deliver open-URL after didFinishLaunching or reopen,
     // so use a cancellable, short deferred presentation for ambiguous events.
     private var pendingSettingsPresentation: Task<Void, Never>?
-    private var receivedURLSinceLaunch = false
-    private var lastURLDelivery: Date = .distantPast
+    private var launchIntent = LaunchIntentCoordinator()
 
     #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
     private func sendPreviewMenuSnapshot() {
@@ -75,8 +74,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         // Incoming operations are never implicit requests to show Settings.
         // Cancel any pending window from application launch/reopen first.
         if !urls.isEmpty {
-            receivedURLSinceLaunch = true
-            lastURLDelivery = Date()
+            launchIntent.recordOperationURL()
             pendingSettingsPresentation?.cancel()
             pendingSettingsPresentation = nil
         }
@@ -119,8 +117,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         pendingSettingsPresentation = Task { @MainActor [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
-            if coldLaunch && self.receivedURLSinceLaunch { return }
-            guard Date().timeIntervalSince(self.lastURLDelivery) > 0.7 else { return }
+            guard self.launchIntent.shouldPresentSettings(afterColdLaunch: coldLaunch) else { return }
             self.openPreferences()
         }
     }
