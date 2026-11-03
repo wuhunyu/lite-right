@@ -5,6 +5,7 @@ import AppKit
 @MainActor
 final class StatusBarController: NSObject {
     private var statusItem: NSStatusItem?
+    var onOpenPreferences: (() -> Void)?
 
     func setVisible(_ visible: Bool) {
         if !visible {
@@ -39,8 +40,7 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func openPreferences(_ sender: Any?) {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first(where: { $0.canBecomeKey })?.makeKeyAndOrderFront(nil)
+        onOpenPreferences?()
     }
 
     @objc private func quitApplication(_ sender: Any?) {

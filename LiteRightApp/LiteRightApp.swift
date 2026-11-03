@@ -37,6 +37,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         sendPreviewMenuSnapshot()
         #endif
 
+        statusBar.onOpenPreferences = { [weak self] in self?.openPreferences() }
         applyDisplayPreferences(model.value)
         // The SwiftUI settings view is no longer mounted during background work.
         // Observe the shared model here so toggles still update Dock/menu icons.
