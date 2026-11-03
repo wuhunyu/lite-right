@@ -33,6 +33,17 @@ do {
     try require(!(app["NSAppleEventsUsageDescription"] as? String ?? "").isEmpty,
                 "XcodeGen preserves Apple Events usage description")
 
+    try require(app["CFBundleShortVersionString"] as? String == "$(MARKETING_VERSION)",
+                "Generated app plist derives version from MARKETING_VERSION")
+    try require(extensionInfo["CFBundleShortVersionString"] as? String == "$(MARKETING_VERSION)",
+                "Generated extension plist derives version from MARKETING_VERSION")
+    try require(app["CFBundleVersion"] as? String == "$(CURRENT_PROJECT_VERSION)",
+                "Generated app plist derives build from CURRENT_PROJECT_VERSION")
+    try require(extensionInfo["CFBundleVersion"] as? String == "$(CURRENT_PROJECT_VERSION)",
+                "Generated extension plist derives build from CURRENT_PROJECT_VERSION")
+    try require(app["LiteRightReleaseChannel"] as? String == "preview",
+                "Generated app plist preserves preview channel")
+
     let finder = extensionInfo["NSExtension"] as? [String: Any]
     try require(finder?["NSExtensionPointIdentifier"] as? String == "com.apple.FinderSync",
                 "XcodeGen preserves Finder Sync extension point")

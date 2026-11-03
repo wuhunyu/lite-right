@@ -28,6 +28,8 @@ targets:
           - CFBundleURLSchemes:
               - lite-right
         LSUIElement: true
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LiteRightReleaseChannel: preview
         NSAppleEventsUsageDescription: "LiteRight 需要在用户点击操作后打开新的终端窗口。"
     entitlements:
@@ -57,6 +59,8 @@ targets:
     info:
       path: LiteRightFinderExtension/Info.plist
       properties:
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSExtension:
           NSExtensionAttributes: {}
           NSExtensionPointIdentifier: com.apple.FinderSync
