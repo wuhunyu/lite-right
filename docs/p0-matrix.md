@@ -1,5 +1,7 @@
 # P0 Finder Sync 真机兼容验证记录
 
+> **2026-11-03 当前范围：**只验收新建 TXT、Markdown、在终端打开、复制绝对路径四项操作；已移除显示/隐藏文件功能。复制路径必须分别核对空白处、目录和单个文件目标。历史调查记录保留作追溯，不代表当前功能。
+
 状态：**Not verified — No-Go pending macOS 27 physical-machine verification**。
 
 当前自动验证范围：LiteRightCore Swift 单元测试；macOS GitHub Actions Xcode 编译。
@@ -56,7 +58,7 @@ GUI 试验 2 项测试均失败，详情 [Issue #4](https://github.com/wuhunyu/l
 | 主 App + Finder appex 签名检查结果 | 待测 |
 | App Group 同名与实际共享读写 | 待测 |
 | Finder 扩展在系统设置中已启用（截图） | 待测 |
-| Finder 右键菜单实际层级及 5 项操作截图 | 待测 |
+| Finder 右键菜单实际层级及 4 项操作截图 | 待测 |
 | 桌面、文稿、下载、iCloud、外置卷、网络共享覆盖 | 待测 |
 | 终端新 Window 与 TCC 拒绝测试 | 待测 |
 | 菜单排序/显隐、菜单栏/Dock、登录项重启持久化 | 待测 |
