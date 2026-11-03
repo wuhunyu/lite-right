@@ -170,10 +170,12 @@ final class SettingsSmokeUITests: XCTestCase {
         XCTAssertTrue(settingsTitle.waitForExistence(timeout: 10))
         XCTAssertEqual(settingsTitle.value as? String, testPreferences.path,
                        "The app must use the isolated preferences file supplied by its probe argument")
-        var toggle = app.descendants(matching: .any)
-            .matching(identifier: toggleIdentifier).firstMatch
+        var toggle = app.checkBoxes.matching(identifier: toggleIdentifier).firstMatch
+        if !toggle.waitForExistence(timeout: 2) {
+            toggle = app.switches.matching(identifier: toggleIdentifier).firstMatch
+        }
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
-                      "The menu visibility toggle must be accessible")
+                      "The menu visibility toggle must be exposed as a checkbox or switch")
         if toggle.isHittable {
             toggle.click()
         } else {
@@ -186,16 +188,22 @@ final class SettingsSmokeUITests: XCTestCase {
             app.typeKey(.space, modifierFlags: [])
         }
         let alert = app.alerts.firstMatch
+        let saveDeadline = Date().addingTimeInterval(3)
+        while Date() < saveDeadline, savedMarkdownVisibility(at: testPreferences) != !baseline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
         XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), !baseline,
-                       "The first click must atomically save the new visibility to disk; toggle value=\(String(describing: toggle.value)), selected=\(toggle.isSelected), alert=\(alert.exists ? alert.label : "none")")
+                       "The native toggle must save its changed value; type=\(toggle.elementType.rawValue), value=\(String(describing: toggle.value)), selected=\(toggle.isSelected), alert=\(alert.exists ? alert.label : "none")")
 
         // Terminate and relaunch: the second click must restore the persisted
         // value, proving the new process loaded it instead of a default.
         app.terminate()
         app.launch()
         app.activate()
-        toggle = app.descendants(matching: .any)
-            .matching(identifier: toggleIdentifier).firstMatch
+        toggle = app.checkBoxes.matching(identifier: toggleIdentifier).firstMatch
+        if !toggle.waitForExistence(timeout: 2) {
+            toggle = app.switches.matching(identifier: toggleIdentifier).firstMatch
+        }
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
         if toggle.isHittable {
             toggle.click()
