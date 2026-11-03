@@ -28,4 +28,19 @@ public enum FinderHiddenFileShortcut {
             return event
         }
     }
+    /// Deliver the physical shortcut directly to the intended Finder process.
+    /// A global HID tap can race with LaunchServices bringing LiteRight to
+    /// the foreground. The injected closure allows CI to verify the actual
+    /// destination of all six events without sending keyboard input.
+    public static func post(
+        to finderPID: pid_t,
+        deliver: (CGEvent, pid_t) -> Void = { event, pid in event.postToPid(pid) }
+    ) throws {
+        guard finderPID > 0 else {
+            throw LiteRightError.operationFailed("Finder 进程无效，未发送快捷键。")
+        }
+        for event in try makeEvents() {
+            deliver(event, finderPID)
+        }
+    }
 }
