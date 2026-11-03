@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 
 /// Best-effort GUI tests on hosted macOS. They do not imply Finder extension authorization.
 final class SettingsSmokeUITests: XCTestCase {
@@ -118,4 +119,69 @@ final class SettingsSmokeUITests: XCTestCase {
                           "Expected the Finder action in the Settings list: \(name)")
         }
     }
+    /// Use the same versioned preview transport as Finder Sync; no mock route.
+    private func previewCopyURL(directory: String) throws -> URL {
+        let request: [String: Any] = [
+            "schemaVersion": 1,
+            "id": UUID().uuidString,
+            "action": "copyDirectoryPath",
+            "directoryPath": directory,
+            "createdAt": Date().timeIntervalSinceReferenceDate
+        ]
+        let json = try JSONSerialization.data(withJSONObject: request)
+        let encoded = json.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        var url = URLComponents()
+        url.scheme = "lite-right"
+        url.host = "run"
+        url.queryItems = [URLQueryItem(name: "request", value: encoded)]
+        return try XCTUnwrap(url.url)
+    }
+
+    private func requireClipboard(_ expected: String) {
+        let limit = Date().addingTimeInterval(15)
+        while Date() < limit {
+            if NSPasteboard.general.string(forType: .string) == expected { break }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+        }
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), expected)
+    }
+
+    @MainActor
+    func testFinderCopyURLRunsSilentlyInExistingProcess() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertFalse(app.windows.firstMatch.exists,
+                       "A background Finder helper must not show Settings at launch")
+
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("pre-action-marker", forType: .string)
+        XCTAssertTrue(NSWorkspace.shared.open(try previewCopyURL(directory: home)))
+        requireClipboard(home)
+        XCTAssertFalse(app.windows.firstMatch.exists,
+                       "A Finder action must not instantiate the Settings window")
+    }
+
+    @MainActor
+    func testFinderCopyURLRunsSilentlyOnColdStart() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launch() // Register installed test app and URL handler.
+        app.terminate()
+
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("pre-action-marker", forType: .string)
+        XCTAssertTrue(NSWorkspace.shared.open(try previewCopyURL(directory: home)))
+        defer { app.terminate() }
+        requireClipboard(home)
+        XCTAssertFalse(app.windows.firstMatch.exists,
+                       "Cold URL activation must not reveal a settings window")
+    }
+
 }
