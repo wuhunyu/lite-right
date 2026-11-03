@@ -1,10 +1,19 @@
 import AppKit
+import Combine
 import SwiftUI
 import LiteRightCore
 
+/// Finder requests must be handled by the application delegate, not a
+/// SwiftUI Window scene. The host stays headless until Settings are requested.
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
+    let model = PreferenceViewModel()
+
     private let statusBar = StatusBarController()
+    private let dispatcher = OperationDispatcher()
+    private var preferencesWindow: NSWindow?
+    private var preferencesObservation: AnyCancellable?
+
     #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
     private func sendPreviewMenuSnapshot() {
         guard let prefs = try? HostPreferencesStore().load(),
@@ -27,15 +36,40 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         )
         sendPreviewMenuSnapshot()
         #endif
-        let preferences = (try? HostPreferencesStore().load()) ?? .default
-        NSApp.setActivationPolicy(preferences.showDockIcon ? .regular : .accessory)
-        setMenuBarVisible(preferences.showMenuBarIcon)
+
+        applyDisplayPreferences(model.value)
+        // The SwiftUI settings view is no longer mounted during background work.
+        // Observe the shared model here so toggles still update Dock/menu icons.
+        preferencesObservation = model.$value.dropFirst().sink { [weak self] preferences in
+            self?.applyDisplayPreferences(preferences)
+        }
+
+        #if DEBUG
+        // XCUITest requests a settings window explicitly; real URL launches
+        // never carry this flag and are intentionally silent.
+        if ProcessInfo.processInfo.arguments.contains("--literight-probe-show-settings") {
+            openPreferences()
+        }
+        #endif
+    }
+
+    /// AppKit delivers both warm and cold custom-URL launches here.
+    /// No settings window is created just to receive a Finder action.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            Task { await dispatcher.handleIncomingURL(url) }
+        }
     }
 
     deinit {
         #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
         DistributedNotificationCenter.default().removeObserver(self)
         #endif
+    }
+
+    private func applyDisplayPreferences(_ preferences: GeneralPreferences) {
+        NSApp.setActivationPolicy(preferences.showDockIcon ? .regular : .accessory)
+        setMenuBarVisible(preferences.showMenuBarIcon)
     }
 
     func setMenuBarVisible(_ visible: Bool) {
@@ -49,51 +83,61 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        // Dock relaunch is an explicit request for Settings, unlike open URLs.
         openPreferences()
         return true
     }
 
     func openPreferences() {
+        let window: NSWindow
+        if let existing = preferencesWindow {
+            window = existing
+        } else {
+            let content: AnyView
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--literight-probe-minimal-window") {
+                content = AnyView(Text("LiteRight Startup Probe"))
+            } else {
+                content = AnyView(SettingsRootView().environmentObject(model))
+            }
+            #else
+            content = AnyView(SettingsRootView().environmentObject(model))
+            #endif
+
+            let created = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            created.title = "LiteRight 设置"
+            created.contentViewController = NSHostingController(
+                rootView: content.frame(minWidth: 640, minHeight: 420)
+            )
+            created.isReleasedWhenClosed = false
+            created.center()
+            preferencesWindow = created
+            window = created
+        }
+
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first(where: { $0.canBecomeKey })?.makeKeyAndOrderFront(nil)
+        window.makeKeyAndOrderFront(nil)
     }
 }
 
 @main
 struct LiteRightApp: App {
     @NSApplicationDelegateAdaptor(LiteRightApplicationDelegate.self) private var appDelegate
-    @StateObject private var model = PreferenceViewModel()
-    @StateObject private var dispatcher = OperationDispatcher()
-
-    #if DEBUG
-    // Diagnostic flag only affects the XCUITest scene and is absent in release builds.
-    private var probeMinimalWindow: Bool {
-        ProcessInfo.processInfo.arguments.contains("--literight-probe-minimal-window")
-    }
-    #endif
 
     var body: some Scene {
         Window("LiteRight 设置", id: "preferences") {
-            Group {
-                #if DEBUG
-                if probeMinimalWindow {
-                    Text("LiteRight Startup Probe")
-                } else {
-                    SettingsRootView().environmentObject(model)
-                }
-                #else
-                SettingsRootView().environmentObject(model)
-                #endif
-            }
-            .frame(minWidth: 640, minHeight: 420)
-            .onOpenURL { url in Task { await dispatcher.handleIncomingURL(url) } }
-            .onChange(of: model.value.showDockIcon) { _, visible in
-                NSApp.setActivationPolicy(visible ? .regular : .accessory)
-            }
-            .onChange(of: model.value.showMenuBarIcon) { _, visible in
-                appDelegate.setMenuBarVisible(visible)
-            }
+            SettingsRootView().environmentObject(appDelegate.model)
+                .frame(minWidth: 640, minHeight: 420)
         }
+        // No scene on login/startup, and opening a custom URL must not
+        // auto-create or restore this window.
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
         .defaultSize(width: 760, height: 520)
         .commands { CommandGroup(replacing: .newItem) {} }
     }
