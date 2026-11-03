@@ -12,7 +12,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testProbeMinimalWindowWithoutStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar"]
+        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar", "--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
@@ -22,7 +22,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testProbeRealSettingsWithoutStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launchArguments = ["--literight-probe-no-menubar", "--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["右键菜单"].firstMatch.waitForExistence(timeout: 20),
@@ -32,7 +32,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testProbeMinimalWindowWithStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-minimal-window"]
+        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
@@ -42,6 +42,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testGeneralSettingsCanConfigureFinderMonitoredFolders() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         let general = app.staticTexts["通用"].firstMatch
@@ -56,6 +57,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testSettingsWindowIsActuallyLaunched() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20),
@@ -82,6 +84,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testMenuVisibilityPersistsAcrossAppRestart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         let toggleIdentifier = "menu-visibility-newMarkdown"
@@ -110,6 +113,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testInitialMenuPageContainsAllFourActions() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20))
