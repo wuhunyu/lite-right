@@ -44,7 +44,7 @@ final class FinderHiddenFileShortcutTests: XCTestCase {
 
         XCTAssertEqual(deliveredPIDs, Array(repeating: finderPID, count: 6))
         XCTAssertEqual(deliveredKeycodes, [55, 56, 47, 47, 56, 55])
-        XCTAssertEqual(deliveredTypes, [.keyDown, .keyDown, .keyDown, .keyUp, .keyUp, .keyUp])
+        XCTAssertEqual(deliveredTypes, [.flagsChanged, .flagsChanged, .keyDown, .keyUp, .flagsChanged, .flagsChanged])
     }
 
     func testInvalidFinderPIDNeverPostsKeyboardEvents() {
