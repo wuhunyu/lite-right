@@ -197,12 +197,6 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
                                      max(visibleFrame.minY, visibleFrame.maxY - frame.height))
                 created.setFrame(frame, display: false)
             }
-            #if DEBUG
-            let screenSummary = NSScreen.screens.enumerated().map { index, screen in
-                "\(index):frame=\(NSStringFromRect(screen.frame)),visible=\(NSStringFromRect(screen.visibleFrame)),main=\(screen === NSScreen.main)"
-            }.joined(separator: " | ")
-            NSLog("LiteRight settings placement window=%@ screens=%@", NSStringFromRect(created.frame), screenSummary)
-            #endif
             preferencesWindow = created
             window = created
         }

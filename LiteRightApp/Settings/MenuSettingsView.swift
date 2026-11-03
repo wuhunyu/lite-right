@@ -8,7 +8,7 @@ struct MenuSettingsView: View {
             Text("右键菜单").font(.title2.bold())
                 .accessibilityIdentifier("menu-settings-title")
                 #if DEBUG
-                .accessibilityValue(model.debugPreferencesPath)
+                .accessibilityValue("path=\(model.debugPreferencesPath)\n\(model.debugDisplayGeometry)")
                 #endif
             Text("调整 LiteRight 的四个菜单顺序，或隐藏不常用的操作。下一次右键即生效。")
                 .font(.subheadline).foregroundStyle(.secondary)
