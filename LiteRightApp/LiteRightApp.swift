@@ -153,6 +153,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func openPreferences() {
         let window: NSWindow
+        var didCreateWindow = false
         if let existing = preferencesWindow {
             window = existing
         } else {
@@ -189,20 +190,22 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
             )
             created.isReleasedWhenClosed = false
             created.center()
-            if let visibleFrame = NSScreen.main?.visibleFrame ?? NSScreen.screens.first?.visibleFrame {
-                var frame = created.frame
-                frame.origin.x = min(max(frame.origin.x, visibleFrame.minX),
-                                     max(visibleFrame.minX, visibleFrame.maxX - frame.width))
-                frame.origin.y = min(max(frame.origin.y, visibleFrame.minY),
-                                     max(visibleFrame.minY, visibleFrame.maxY - frame.height))
-                created.setFrame(frame, display: false)
-            }
             preferencesWindow = created
             window = created
+            didCreateWindow = true
         }
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+        if didCreateWindow,
+           let visibleFrame = NSScreen.main?.visibleFrame ?? NSScreen.screens.first?.visibleFrame {
+            var frame = window.frame
+            frame.origin.x = min(max(frame.origin.x, visibleFrame.minX),
+                                 max(visibleFrame.minX, visibleFrame.maxX - frame.width))
+            frame.origin.y = min(max(frame.origin.y, visibleFrame.minY),
+                                 max(visibleFrame.minY, visibleFrame.maxY - frame.height))
+            window.setFrame(frame, display: true)
+        }
     }
 }
 
