@@ -175,8 +175,9 @@ final class SettingsSmokeUITests: XCTestCase {
             // reporting it as hittable; use its actual screen coordinate.
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
+        let alert = app.alerts.firstMatch
         XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), !baseline,
-                       "The first click must atomically save the new visibility to disk")
+                       "The first click must atomically save the new visibility to disk; toggle value=\(String(describing: toggle.value)), selected=\(toggle.isSelected), alert=\(alert.exists ? alert.label : "none")")
 
         // Terminate and relaunch: the second click must restore the persisted
         // value, proving the new process loaded it instead of a default.
