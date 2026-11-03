@@ -15,6 +15,7 @@ MASTER = ROOT / 'assets/logo/LiteRight.svg'
 SMALL = ROOT / 'assets/logo/LiteRight-small.svg'
 BAR = ROOT / 'assets/menubar/LiteRightMenuBar.svg'
 OUT = ROOT / 'LiteRightApp/Assets.xcassets/AppIcon.appiconset'
+BAR_OUT = ROOT / 'LiteRightApp/Assets.xcassets/MenuBarIcon.imageset'
 
 def svg_image(source: Path, resolution: int) -> Image.Image:
     exe = shutil.which('inkscape')
@@ -47,6 +48,15 @@ def main() -> None:
             save(small if pixel <= 32 else master, OUT / filename, pixel)
             specs.append({'idiom':'mac','size':f'{size}x{size}','scale':f'{scale}x','filename':filename})
     (OUT / 'Contents.json').write_text(json.dumps({'images': specs, 'info': {'author':'xcode','version':1}}, indent=2) + '\n')
+    BAR_OUT.mkdir(parents=True, exist_ok=True)
+    save(bar, BAR_OUT / 'menubar.png', 18)
+    save(bar, BAR_OUT / 'menubar@2x.png', 36)
+    (BAR_OUT / 'Contents.json').write_text(json.dumps({
+        'images': [
+            {'idiom': 'universal', 'filename': 'menubar.png', 'scale': '1x'},
+            {'idiom': 'universal', 'filename': 'menubar@2x.png', 'scale': '2x'}
+        ], 'info': {'author': 'xcode', 'version': 1}
+    }, indent=2) + '\n')
     save(master, ROOT / 'assets/logo/LiteRight-preview-1024.png', 1024)
     for pixels in (18, 20, 36, 40, 64):
         save(bar, ROOT / f'assets/menubar/LiteRightMenuBar-{pixels}px.png', pixels)

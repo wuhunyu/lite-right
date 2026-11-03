@@ -42,6 +42,27 @@ jobs:
             -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/LiteRightDerived" \
             CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee xcode-build.log
+      - name: Validate release packaging script and GitHub workflow YAML
+        run: |
+          set -euo pipefail
+          bash -n ci/package-release.sh
+          ruby -e 'require "yaml"; YAML.load_file(".github/workflows/release-v1.yml")'
+          grep -Fq 'gh release create v1.0.0' .github/workflows/release-v1.yml
+      - name: Build and test v1.0.0 release channel and ad-hoc packaging
+        run: |
+          set -euo pipefail
+          xcodebuild -project LiteRight.xcodeproj -scheme LiteRight -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/LiteRightReleaseSmoke" \
+            CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            MARKETING_VERSION=1.0.0 CURRENT_PROJECT_VERSION=1 \
+            LITERIGHT_RELEASE_CHANNEL=release \
+            OTHER_SWIFT_FLAGS="-D LITERIGHT_UNTRUSTED_PREVIEW" \
+            build 2>&1 | tee release-smoke-build.log
+          APP="$RUNNER_TEMP/LiteRightReleaseSmoke/Build/Products/Release/LiteRight.app"
+          swift ci/verify-app-bundle.swift "$APP" release
+          bash ci/package-release.sh "$APP" "$RUNNER_TEMP/v1-release-smoke" v1.0.0
+          bash ci/test-preview-package.sh "$RUNNER_TEMP/v1-release-smoke" v1.0.0 release
       - name: Inspect the actual app and embedded Finder extension
         run: |
           swift ci/verify-app-bundle.swift "$RUNNER_TEMP/LiteRightDerived/Build/Products/Debug/LiteRight.app" | tee bundle-check.log
@@ -74,6 +95,7 @@ jobs:
           path: |
             swift-test.log
             xcode-build.log
+            release-smoke-build.log
             bundle-check.log
             signed-gate-negative.log
           if-no-files-found: warn

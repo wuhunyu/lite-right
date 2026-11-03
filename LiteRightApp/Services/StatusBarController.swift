@@ -5,6 +5,7 @@ import AppKit
 @MainActor
 final class StatusBarController: NSObject {
     private var statusItem: NSStatusItem?
+    var onOpenPreferences: (() -> Void)?
 
     func setVisible(_ visible: Bool) {
         if !visible {
@@ -17,8 +18,9 @@ final class StatusBarController: NSObject {
         guard statusItem == nil else { return }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        let image = NSImage(systemSymbolName: "cursorarrow.click.2", accessibilityDescription: "LiteRight")
+        let image = NSImage(named: "MenuBarIcon")
         image?.isTemplate = true
+        image?.size = NSSize(width: 18, height: 18)
         item.button?.image = image
         item.button?.toolTip = "LiteRight"
 
@@ -38,8 +40,7 @@ final class StatusBarController: NSObject {
     }
 
     @objc private func openPreferences(_ sender: Any?) {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first(where: { $0.canBecomeKey })?.makeKeyAndOrderFront(nil)
+        onOpenPreferences?()
     }
 
     @objc private func quitApplication(_ sender: Any?) {

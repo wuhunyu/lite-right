@@ -1,4 +1,5 @@
 import AppKit
+import FinderSync
 import SwiftUI
 import LiteRightCore
 
@@ -6,6 +7,7 @@ struct GeneralSettingsView: View {
     @EnvironmentObject private var model: PreferenceViewModel
     @StateObject private var login = LoginItemController()
     @State private var errorMessage: String?
+    @State private var finderExtensionEnabled = false
 
     var body: some View {
         Form {
@@ -22,6 +24,17 @@ struct GeneralSettingsView: View {
                 ))
                 Text("使用 macOS 的登录项管理，不会添加 LaunchAgent。")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("系统集成") {
+                LabeledContent("Finder 右键扩展", value: finderExtensionEnabled ? "系统报告已启用" : "未启用或无法确认")
+                HStack {
+                    Button("管理 Finder 扩展") {
+                        FIFinderSyncController.showExtensionManagementInterface()
+                    }
+                    Button("刷新状态", systemImage: "arrow.clockwise") {
+                        finderExtensionEnabled = FIFinderSyncController.isExtensionEnabled
+                    }
+                }
             }
             Section("Finder 监控") {
                 Text("Finder Sync 只在已配置目录及其子目录内提供右键菜单。默认监控用户主目录，外接磁盘与网络共享可单独添加。")
@@ -58,7 +71,10 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .padding(14)
-        .onAppear { login.refresh() }
+        .onAppear {
+            login.refresh()
+            finderExtensionEnabled = FIFinderSyncController.isExtensionEnabled
+        }
         .alert("设置失败", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("确定") { errorMessage = nil }
         } message: { Text(errorMessage ?? "") }

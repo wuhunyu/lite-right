@@ -6,8 +6,10 @@ struct MenuSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("右键菜单").font(.title2.bold())
+                .accessibilityIdentifier("menu-settings-title")
             Text("调整 LiteRight 的四个菜单顺序，或隐藏不常用的操作。下一次右键即生效。")
                 .font(.subheadline).foregroundStyle(.secondary)
+                .accessibilityIdentifier("menu-settings-description")
             List {
                 ForEach(model.value.orderedMenuItems) { entry in
                     HStack(spacing: 12) {

@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 
 /// Best-effort GUI tests on hosted macOS. They do not imply Finder extension authorization.
 final class SettingsSmokeUITests: XCTestCase {
@@ -11,7 +12,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testProbeMinimalWindowWithoutStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar"]
+        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-no-menubar", "--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
@@ -21,7 +22,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testProbeRealSettingsWithoutStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-no-menubar"]
+        app.launchArguments = ["--literight-probe-no-menubar", "--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["右键菜单"].firstMatch.waitForExistence(timeout: 20),
@@ -31,7 +32,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testProbeMinimalWindowWithStatusBar() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-minimal-window"]
+        app.launchArguments = ["--literight-probe-minimal-window", "--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.staticTexts["LiteRight Startup Probe"].waitForExistence(timeout: 20),
@@ -41,11 +42,14 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testGeneralSettingsCanConfigureFinderMonitoredFolders() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         let general = app.staticTexts["通用"].firstMatch
         XCTAssertTrue(general.waitForExistence(timeout: 20))
         general.click()
+        XCTAssertTrue(app.buttons["管理 Finder 扩展"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["权限管理"].exists)
         XCTAssertTrue(app.buttons["添加监控目录"].firstMatch.waitForExistence(timeout: 10),
                       "The native General settings page must allow adding monitored Finder roots")
     }
@@ -53,10 +57,78 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testSettingsWindowIsActuallyLaunched() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20),
                       "LiteRight must display its native preferences window")
+    }
+
+    /// AppKit-hosted SwiftUI must not place the main detail heading under
+    /// a translucent titlebar/toolbar. Capture a screenshot in CI to diagnose.
+    @MainActor
+    func testSettingsTitleAndDetailHeaderAreVisible() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
+        app.launch()
+        defer { app.terminate() }
+
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 20))
+        // Hosted macOS accessibility sometimes exposes NSWindow.label as
+        // empty even when the window title is visible. Verify if available,
+        // then keep a screenshot for a human titlebar/side-material review.
+        if !window.label.isEmpty {
+            XCTAssertEqual(window.label, "LiteRight", "Only the brand should appear in the titlebar")
+        }
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "LiteRight-settings-titlebar-and-sidebar"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        let title = app.staticTexts["menu-settings-title"].firstMatch
+        let description = app.staticTexts["menu-settings-description"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 10),
+                      "The menu page must provide an accessible detail heading")
+        XCTAssertTrue(description.waitForExistence(timeout: 10))
+        XCTAssertTrue(title.isHittable, "The detail heading must not be covered by the titlebar")
+        XCTAssertTrue(description.isHittable, "The description must not be covered by a toolbar")
+        XCTAssertGreaterThan(title.frame.minY, window.frame.minY + 30,
+                             "Detail headings should begin below the traffic-light/titlebar region")
+        XCTAssertLessThan(title.frame.maxY, description.frame.minY,
+                          "The detail heading must be laid out above its description")
+
+    }
+
+    /// Double-clicking a stopped LiteRight.app must show Settings; the
+    /// custom URL tests below separately verify silent Finder work.
+    @MainActor
+    func testManualLaunchOpensSettingsWithoutDebugFlags() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15),
+                      "A normal user launch of LiteRight must open Settings")
+    }
+
+    /// Finder re-opening an existing accessory app is a user-initiated action.
+    /// It must not be confused with a lite-right://run operation.
+    @MainActor
+    func testExplicitAppReopenOpensSettingsWhenRunningHeadless() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-start-headless", "--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertFalse(app.windows.firstMatch.exists)
+
+        let reopen = Process()
+        reopen.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        reopen.arguments = ["-b", "com.wuhunyu.literight"]
+        try reopen.run()
+        reopen.waitUntilExit()
+        XCTAssertEqual(reopen.terminationStatus, 0)
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15),
+                      "Explicitly opening the already running app must reveal Settings")
     }
 
     /// Read the actual on-disk snapshot rather than assuming macOS 27
@@ -79,16 +151,24 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testMenuVisibilityPersistsAcrossAppRestart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         let toggleIdentifier = "menu-visibility-newMarkdown"
         let baseline = savedMarkdownVisibility() ?? true
 
+        app.activate()
         var toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
                       "The menu visibility toggle must be accessible")
-        toggle.click()
+        if toggle.isHittable {
+            toggle.click()
+        } else {
+            // Hosted macOS accessibility can expose a valid checkbox without
+            // reporting it as hittable; use its actual screen coordinate.
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        }
         XCTAssertEqual(savedMarkdownVisibility(), !baseline,
                        "The first click must atomically save the new visibility to disk")
 
@@ -96,10 +176,17 @@ final class SettingsSmokeUITests: XCTestCase {
         // value, proving the new process loaded it instead of a default.
         app.terminate()
         app.launch()
+        app.activate()
         toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
-        toggle.click()
+        if toggle.isHittable {
+            toggle.click()
+        } else {
+            // Hosted macOS accessibility can expose a valid checkbox without
+            // reporting it as hittable; use its actual screen coordinate.
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        }
         XCTAssertEqual(savedMarkdownVisibility(), baseline,
                        "The relaunched app must use the saved preference")
     }
@@ -107,6 +194,7 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testInitialMenuPageContainsAllFourActions() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20))
@@ -116,4 +204,69 @@ final class SettingsSmokeUITests: XCTestCase {
                           "Expected the Finder action in the Settings list: \(name)")
         }
     }
+    /// Use the same versioned preview transport as Finder Sync; no mock route.
+    private func previewCopyURL(directory: String) throws -> URL {
+        let request: [String: Any] = [
+            "schemaVersion": 1,
+            "id": UUID().uuidString,
+            "action": "copyDirectoryPath",
+            "directoryPath": directory,
+            "createdAt": Date().timeIntervalSinceReferenceDate
+        ]
+        let json = try JSONSerialization.data(withJSONObject: request)
+        let encoded = json.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        var url = URLComponents()
+        url.scheme = "lite-right"
+        url.host = "run"
+        url.queryItems = [URLQueryItem(name: "request", value: encoded)]
+        return try XCTUnwrap(url.url)
+    }
+
+    private func requireClipboard(_ expected: String) {
+        let limit = Date().addingTimeInterval(15)
+        while Date() < limit {
+            if NSPasteboard.general.string(forType: .string) == expected { break }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+        }
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), expected)
+    }
+
+    @MainActor
+    func testFinderCopyURLRunsSilentlyInExistingProcess() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-start-headless", "--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertFalse(app.windows.firstMatch.exists,
+                       "A background Finder helper must not show Settings at launch")
+
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("pre-action-marker", forType: .string)
+        XCTAssertTrue(NSWorkspace.shared.open(try previewCopyURL(directory: home)))
+        requireClipboard(home)
+        XCTAssertFalse(app.windows.firstMatch.exists,
+                       "A Finder action must not instantiate the Settings window")
+    }
+
+    @MainActor
+    func testFinderCopyURLRunsSilentlyOnColdStart() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-start-headless", "--literight-probe-no-menubar"]
+        app.launch() // Register installed test app and URL handler.
+        app.terminate()
+
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("pre-action-marker", forType: .string)
+        XCTAssertTrue(NSWorkspace.shared.open(try previewCopyURL(directory: home)))
+        defer { app.terminate() }
+        requireClipboard(home)
+        XCTAssertFalse(app.windows.firstMatch.exists,
+                       "Cold URL activation must not reveal a settings window")
+    }
+
 }

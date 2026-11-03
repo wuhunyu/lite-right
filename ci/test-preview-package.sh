@@ -2,7 +2,8 @@
 # Real macOS packaging integration checks. Test the ZIP/DMG from this same run.
 set -euo pipefail
 DIST="${1:?Usage: test-preview-package.sh <dist> <label>}"
-LABEL="${2:?Usage: test-preview-package.sh <dist> <label>}"
+LABEL="${2:?Usage: test-preview-package.sh <dist> <label> [preview|release]}"
+CHANNEL="${3:-preview}"
 ZIP="$DIST/LiteRight-$LABEL-macos-arm64-adhoc.zip"
 DMG="$DIST/LiteRight-$LABEL-macos-arm64-adhoc.dmg"
 MANIFEST="$DIST/SHA256SUMS.txt"
@@ -21,7 +22,7 @@ test -d "$EXT"
 echo '=== Extracted ZIP app Info.plist LSUIElement ==='
 /usr/bin/plutil -p "$APP/Contents/Info.plist" | grep -E 'LSUIElement|CFBundleIdentifier|CFBundleExecutable' || true
 /usr/libexec/PlistBuddy -c 'Print :LSUIElement' "$APP/Contents/Info.plist" || true
-swift ci/verify-app-bundle.swift "$APP"
+swift ci/verify-app-bundle.swift "$APP" "$CHANNEL"
 codesign --verify --strict --deep --verbose=2 "$APP"
 codesign --verify --strict --verbose=2 "$EXT"
 # Verify that the ad-hoc signature also embeds both App Group claims;
