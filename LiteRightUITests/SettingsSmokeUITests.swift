@@ -133,12 +133,7 @@ final class SettingsSmokeUITests: XCTestCase {
 
     /// Read the actual on-disk snapshot rather than assuming macOS 27
     /// accessibility checkboxes expose a nonempty XCUIElement.value string.
-    private func savedMarkdownVisibility() -> Bool? {
-        let support = FileManager.default.urls(
-            for: .applicationSupportDirectory, in: .userDomainMask
-        ).first ?? FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support", isDirectory: true)
-        let file = support.appendingPathComponent("LiteRight/preferences.json")
+    private func savedMarkdownVisibility(at file: URL) -> Bool? {
         guard let bytes = try? Data(contentsOf: file),
               let json = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
               let entries = json["orderedMenuItems"] as? [[String: Any]],
@@ -151,11 +146,16 @@ final class SettingsSmokeUITests: XCTestCase {
     @MainActor
     func testMenuVisibilityPersistsAcrossAppRestart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        let testPreferences = FileManager.default.temporaryDirectory
+            .appendingPathComponent("literight-ui-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("preferences.json")
+        defer { try? FileManager.default.removeItem(at: testPreferences.deletingLastPathComponent()) }
+        app.launchEnvironment["LITERIGHT_PREFERENCES_PATH"] = testPreferences.path
         app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         let toggleIdentifier = "menu-visibility-newMarkdown"
-        let baseline = savedMarkdownVisibility() ?? true
+        let baseline = savedMarkdownVisibility(at: testPreferences) ?? true
 
         app.activate()
         var toggle = app.descendants(matching: .any)
@@ -169,7 +169,7 @@ final class SettingsSmokeUITests: XCTestCase {
             // reporting it as hittable; use its actual screen coordinate.
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
-        XCTAssertEqual(savedMarkdownVisibility(), !baseline,
+        XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), !baseline,
                        "The first click must atomically save the new visibility to disk")
 
         // Terminate and relaunch: the second click must restore the persisted
@@ -187,7 +187,7 @@ final class SettingsSmokeUITests: XCTestCase {
             // reporting it as hittable; use its actual screen coordinate.
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
-        XCTAssertEqual(savedMarkdownVisibility(), baseline,
+        XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), baseline,
                        "The relaunched app must use the saved preference")
     }
 
