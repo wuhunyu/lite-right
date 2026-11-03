@@ -189,6 +189,14 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
             )
             created.isReleasedWhenClosed = false
             created.center()
+            if let visibleFrame = (created.screen ?? NSScreen.main)?.visibleFrame {
+                var frame = created.frame
+                frame.origin.x = min(max(frame.origin.x, visibleFrame.minX),
+                                     max(visibleFrame.minX, visibleFrame.maxX - frame.width))
+                frame.origin.y = min(max(frame.origin.y, visibleFrame.minY),
+                                     max(visibleFrame.minY, visibleFrame.maxY - frame.height))
+                created.setFrame(frame, display: false)
+            }
             preferencesWindow = created
             window = created
         }

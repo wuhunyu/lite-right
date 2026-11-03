@@ -176,6 +176,8 @@ final class SettingsSmokeUITests: XCTestCase {
         }
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
                       "The menu visibility toggle must be exposed as a checkbox or switch")
+        XCTAssertTrue(toggle.isHittable,
+                      "The settings window must keep menu controls inside the visible screen; window=\(app.windows.firstMatch.frame), control=\(toggle.frame)")
         if toggle.isHittable {
             toggle.click()
         } else {
