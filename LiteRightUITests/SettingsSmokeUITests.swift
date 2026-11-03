@@ -90,11 +90,18 @@ final class SettingsSmokeUITests: XCTestCase {
         let toggleIdentifier = "menu-visibility-newMarkdown"
         let baseline = savedMarkdownVisibility() ?? true
 
+        app.activate()
         var toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
                       "The menu visibility toggle must be accessible")
-        toggle.click()
+        if toggle.isHittable {
+            toggle.click()
+        } else {
+            // Hosted macOS accessibility can expose a valid checkbox without
+            // reporting it as hittable; use its actual screen coordinate.
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        }
         XCTAssertEqual(savedMarkdownVisibility(), !baseline,
                        "The first click must atomically save the new visibility to disk")
 
@@ -102,10 +109,17 @@ final class SettingsSmokeUITests: XCTestCase {
         // value, proving the new process loaded it instead of a default.
         app.terminate()
         app.launch()
+        app.activate()
         toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
-        toggle.click()
+        if toggle.isHittable {
+            toggle.click()
+        } else {
+            // Hosted macOS accessibility can expose a valid checkbox without
+            // reporting it as hittable; use its actual screen coordinate.
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        }
         XCTAssertEqual(savedMarkdownVisibility(), baseline,
                        "The relaunched app must use the saved preference")
     }

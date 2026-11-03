@@ -88,6 +88,22 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     // inadvertently create the Settings window during Finder operations.
     // Users can explicitly open Settings through the menu-bar item.
 
+    /// Dock context menus are an explicit way to open Settings without using
+    /// the implicit reopen callback (which is also triggered by URL delivery).
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu(title: "LiteRight")
+        let item = NSMenuItem(title: "打开 LiteRight 设置",
+                              action: #selector(openPreferencesFromDock(_:)),
+                              keyEquivalent: "")
+        item.target = self
+        menu.addItem(item)
+        return menu
+    }
+
+    @objc private func openPreferencesFromDock(_ sender: Any?) {
+        openPreferences()
+    }
+
     func openPreferences() {
         let window: NSWindow
         if let existing = preferencesWindow {
