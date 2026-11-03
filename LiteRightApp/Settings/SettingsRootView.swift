@@ -5,14 +5,13 @@ struct SettingsRootView: View {
     @State private var selected: Page = .menu
 
     private enum Page: String, CaseIterable, Identifiable {
-        case menu = "右键菜单", terminal = "终端", general = "通用", permissions = "权限管理", about = "关于"
+        case menu = "右键菜单", terminal = "终端", general = "通用", about = "关于"
         var id: Self { self }
         var symbol: String {
             switch self {
             case .menu: "list.bullet.rectangle"
             case .terminal: "terminal"
             case .general: "gearshape"
-            case .permissions: "hand.raised"
             case .about: "info.circle"
             }
         }
@@ -31,7 +30,6 @@ struct SettingsRootView: View {
                 case .menu: MenuSettingsView()
                 case .terminal: TerminalSettingsView()
                 case .general: GeneralSettingsView()
-                case .permissions: PermissionsView()
                 case .about: AboutView()
                 }
             }
