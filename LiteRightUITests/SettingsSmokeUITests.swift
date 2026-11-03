@@ -64,6 +64,37 @@ final class SettingsSmokeUITests: XCTestCase {
                       "LiteRight must display its native preferences window")
     }
 
+    /// Double-clicking a stopped LiteRight.app must show Settings; the
+    /// custom URL tests below separately verify silent Finder work.
+    @MainActor
+    func testManualLaunchOpensSettingsWithoutDebugFlags() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15),
+                      "A normal user launch of LiteRight must open Settings")
+    }
+
+    /// Finder re-opening an existing accessory app is a user-initiated action.
+    /// It must not be confused with a lite-right://run operation.
+    @MainActor
+    func testExplicitAppReopenOpensSettingsWhenRunningHeadless() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-start-headless", "--literight-probe-no-menubar"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertFalse(app.windows.firstMatch.exists)
+
+        let reopen = Process()
+        reopen.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        reopen.arguments = ["-b", "com.wuhunyu.literight"]
+        try reopen.run()
+        reopen.waitUntilExit()
+        XCTAssertEqual(reopen.terminationStatus, 0)
+        XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15),
+                      "Explicitly opening the already running app must reveal Settings")
+    }
+
     /// Read the actual on-disk snapshot rather than assuming macOS 27
     /// accessibility checkboxes expose a nonempty XCUIElement.value string.
     private func savedMarkdownVisibility() -> Bool? {
