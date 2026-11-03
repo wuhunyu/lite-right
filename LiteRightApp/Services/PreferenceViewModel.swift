@@ -10,6 +10,10 @@ final class PreferenceViewModel: ObservableObject {
     private let storage: HostPreferencesStore
     private let sharedStorage = SharedPreferences()
 
+    #if DEBUG
+    var debugPreferencesPath: String { storage.fileURL.path }
+    #endif
+
     init(preferencesURL: URL? = nil) {
         storage = HostPreferencesStore(fileURL: preferencesURL)
         do {

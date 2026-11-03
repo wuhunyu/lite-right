@@ -160,6 +160,10 @@ final class SettingsSmokeUITests: XCTestCase {
         let baseline = savedMarkdownVisibility(at: testPreferences) ?? true
 
         app.activate()
+        let settingsTitle = app.staticTexts["menu-settings-title"]
+        XCTAssertTrue(settingsTitle.waitForExistence(timeout: 10))
+        XCTAssertEqual(settingsTitle.value as? String, testPreferences.path,
+                       "The app must use the isolated preferences file supplied by its probe argument")
         var toggle = app.descendants(matching: .any)
             .matching(identifier: toggleIdentifier).firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
