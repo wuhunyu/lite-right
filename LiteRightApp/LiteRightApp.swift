@@ -83,11 +83,10 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         statusBar.setVisible(visible)
     }
 
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        // Dock relaunch is an explicit request for Settings, unlike open URLs.
-        openPreferences()
-        return true
-    }
+    // Do not implement applicationShouldHandleReopen: LaunchServices can
+    // send a reopen event while delivering lite-right://run, which would
+    // inadvertently create the Settings window during Finder operations.
+    // Users can explicitly open Settings through the menu-bar item.
 
     func openPreferences() {
         let window: NSWindow

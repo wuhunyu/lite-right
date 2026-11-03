@@ -20,6 +20,7 @@ final class PreviewOperationUITests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20))
@@ -69,6 +70,7 @@ final class PreviewOperationUITests: XCTestCase {
         let file = directory.appendingPathComponent("中文 test file.md")
         XCTAssertTrue(FileManager.default.createFile(atPath: file.path, contents: nil))
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
         app.launch()
         defer { app.terminate() }
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 20))
