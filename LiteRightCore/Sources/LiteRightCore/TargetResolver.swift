@@ -29,7 +29,26 @@ public enum TargetResolver {
         guard directories.dropFirst().allSatisfy({ $0 == first }) else {
             return .init(directoryURL: nil, sourceKind: .mixed)
         }
-        return .init(directoryURL: first, sourceKind: selectedItemURLs.count > 1 ? .mixed : (folderOnly ? .folder : .files))
+        return .init(
+            directoryURL: first,
+            sourceKind: selectedItemURLs.count > 1 ? .mixed : (folderOnly ? .folder : .files),
+            // Only a single selected non-folder changes copy semantics.
+            // Creation and terminal actions still use the parent directory.
+            copyPathURL: selectedItemURLs.count == 1 && !folderOnly
+                ? selectedItemURLs[0].standardizedFileURL : first
+        )
+    }
+
+    /// Accept an existing regular file or directory without resolving the
+    /// selected item's displayed path to its parent. Symlink-specific behavior
+    /// is intentionally outside this feature.
+    public static func validatedCopyTarget(_ url: URL) -> URL? {
+        guard url.isFileURL else { return nil }
+        let normalized = url.standardizedFileURL
+        guard let values = try? normalized.resourceValues(
+            forKeys: [.isDirectoryKey, .isRegularFileKey]
+        ), values.isDirectory == true || values.isRegularFile == true else { return nil }
+        return normalized
     }
 
     public static func validatedDirectory(_ directory: URL) -> URL? {

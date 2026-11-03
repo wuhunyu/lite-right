@@ -116,7 +116,8 @@ final class FinderSync: FIFinderSync {
             // are not preserved. The integer tag survives the copy.
             guard let actionTag = FinderActionTag.tag(for: id, context: context) else { continue }
             item.tag = actionTag
-            item.isEnabled = id == .toggleHiddenFiles || target.directoryURL != nil
+            item.isEnabled = id == .toggleHiddenFiles ||
+                (id == .copyDirectoryPath ? target.allowsCopyPath : target.directoryURL != nil)
             menu.addItem(item)
         }
         logger.notice("menu_result item_count=\(menu.items.count)")
@@ -138,7 +139,9 @@ final class FinderSync: FIFinderSync {
             selectedItemURLs: controller.selectedItemURLs()
         )
         logger.notice("finder_action_selected action=\(selection.action.rawValue, privacy: .public) target_available=\(target.directoryURL != nil)")
-        guard selection.action == .toggleHiddenFiles || target.directoryURL != nil else {
+        guard selection.action == .toggleHiddenFiles ||
+                (selection.action == .copyDirectoryPath
+                    ? target.allowsCopyPath : target.directoryURL != nil) else {
             logger.error("finder_action_failed target_unavailable")
             NSSound.beep()
             return
@@ -149,6 +152,7 @@ final class FinderSync: FIFinderSync {
             let request = OperationRequest.forFinderMenu(
                 action: selection.action,
                 directoryURL: target.directoryURL,
+                copyPathURL: target.copyPathURL,
                 preferredTerminal: pref.preferredTerminal
             )
 

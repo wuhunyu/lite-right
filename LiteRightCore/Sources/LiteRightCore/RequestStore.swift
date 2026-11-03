@@ -23,11 +23,14 @@ public struct OperationRequest: Codable, Sendable {
     public static func forFinderMenu(
         action: MenuItemID,
         directoryURL: URL?,
+        copyPathURL: URL? = nil,
         preferredTerminal: TerminalBundle
     ) -> OperationRequest {
-        OperationRequest(
+        let requestedPath = action == .copyDirectoryPath
+            ? (copyPathURL ?? directoryURL) : directoryURL
+        return OperationRequest(
             action: action,
-            directoryPath: action == .toggleHiddenFiles ? nil : directoryURL?.path,
+            directoryPath: action == .toggleHiddenFiles ? nil : requestedPath?.path,
             terminalBundleID: action == .openInTerminal ? preferredTerminal : nil
         )
     }
