@@ -7,7 +7,7 @@ import LiteRightCore
 /// SwiftUI Window scene. The host stays headless until Settings are requested.
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
-    let model = PreferenceViewModel()
+    let model: PreferenceViewModel
 
     private let statusBar = StatusBarController()
     private let dispatcher = OperationDispatcher()
@@ -18,6 +18,19 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     // so use a cancellable, short deferred presentation for ambiguous events.
     private var pendingSettingsPresentation: Task<Void, Never>?
     private var launchIntent = LaunchIntentCoordinator()
+
+    override init() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        let preferencesPath = arguments.first(where: {
+            $0.hasPrefix("--literight-probe-preferences-path=")
+        }).map { String($0.dropFirst("--literight-probe-preferences-path=".count)) }
+        model = PreferenceViewModel(preferencesURL: preferencesPath.map(URL.init(fileURLWithPath:)))
+        #else
+        model = PreferenceViewModel()
+        #endif
+        super.init()
+    }
 
     #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
     private func sendPreviewMenuSnapshot() {

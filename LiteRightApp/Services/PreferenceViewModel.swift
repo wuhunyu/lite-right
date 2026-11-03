@@ -7,10 +7,11 @@ final class PreferenceViewModel: ObservableObject {
     @Published private(set) var value: GeneralPreferences
     @Published var lastError: String?
     @Published private(set) var sharedSyncWarning: String?
-    private let storage = HostPreferencesStore()
+    private let storage: HostPreferencesStore
     private let sharedStorage = SharedPreferences()
 
-    init() {
+    init(preferencesURL: URL? = nil) {
+        storage = HostPreferencesStore(fileURL: preferencesURL)
         do {
             value = try storage.load()
         } catch {

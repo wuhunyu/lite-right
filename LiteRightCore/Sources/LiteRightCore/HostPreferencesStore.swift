@@ -14,20 +14,9 @@ public final class HostPreferencesStore {
             for: .applicationSupportDirectory, in: .userDomainMask
         ).first ?? FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support", isDirectory: true)
-        let defaultURL: URL
-        #if DEBUG
-        if let path = ProcessInfo.processInfo.environment["LITERIGHT_PREFERENCES_PATH"],
-           path.hasPrefix("/"), !path.contains("\0"), path != "/" {
-            // UI tests run the app and XCTest in separate processes. An explicit
-            // test-only path makes persistence assertions observe the app's store.
-            defaultURL = URL(fileURLWithPath: path)
-        } else {
-            defaultURL = base.appendingPathComponent("LiteRight/preferences.json", isDirectory: false)
-        }
-        #else
-        defaultURL = base.appendingPathComponent("LiteRight/preferences.json", isDirectory: false)
-        #endif
-        self.fileURL = fileURL ?? defaultURL
+        self.fileURL = fileURL ?? base.appendingPathComponent(
+            "LiteRight/preferences.json", isDirectory: false
+        )
         self.legacy = legacy
     }
 

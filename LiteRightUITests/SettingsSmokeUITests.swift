@@ -150,8 +150,10 @@ final class SettingsSmokeUITests: XCTestCase {
             .appendingPathComponent("literight-ui-\(UUID().uuidString)", isDirectory: true)
             .appendingPathComponent("preferences.json")
         defer { try? FileManager.default.removeItem(at: testPreferences.deletingLastPathComponent()) }
-        app.launchEnvironment["LITERIGHT_PREFERENCES_PATH"] = testPreferences.path
-        app.launchArguments = ["--literight-probe-show-settings"]
+        app.launchArguments = [
+            "--literight-probe-show-settings",
+            "--literight-probe-preferences-path=\(testPreferences.path)"
+        ]
         app.launch()
         defer { app.terminate() }
         let toggleIdentifier = "menu-visibility-newMarkdown"
