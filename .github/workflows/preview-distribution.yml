@@ -42,6 +42,8 @@ jobs:
           .icon-venv/bin/python -m pip install --disable-pip-version-check pillow cairosvg
           .icon-venv/bin/python tools/export-icons.py
           xcodegen generate
+          test -s LiteRightApp/Assets.xcassets/MenuBarIcon.imageset/menubar.png
+          test -s LiteRightApp/Assets.xcassets/MenuBarIcon.imageset/menubar@2x.png
       - name: Verify generated app/extension metadata and App Group
         run: swift ci/verify-xcodegen-metadata.swift
       - name: Test Finder Sync diagnostics CLI
@@ -53,6 +55,7 @@ jobs:
             -configuration Release -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/LiteRightPreviewDerived" \
             CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             OTHER_SWIFT_FLAGS="-D LITERIGHT_UNTRUSTED_PREVIEW" \
             build 2>&1 | tee preview-build.log
       - name: Verify original Release app bundle structure before packaging
