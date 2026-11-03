@@ -1,3 +1,11 @@
+# 2026-11-03 — v1.0.0 社区正式发布（未公证）
+
+- 版本渠道设为 `release`，系统版本与关于界面统一为 `1.0.0`；此前预览构建继续显示 `1.0.0-preview`。
+- 发布代码基于 PR #26：原生 LiteRight 标题栏、与顶部齐平的侧边栏、修复右侧内容遮挡、静默执行 Finder 右键操作、主动打开设置。
+- GitHub Release 包含 Apple Silicon 的 ad-hoc 签名 ZIP/DMG 与 SHA-256 清单。明确说明 **没有 Apple Developer ID 签名、未经 Apple 公证**，可能被 macOS 安全保护阻止。
+- 保留未公证版本所需、受验证范围约束的本地 URL 操作通道；该通道无法认证本机 URL 调用方，提醒用户评估风险。
+- CI 核心、编译、打包与主要 UI 测试已覆盖；托管 macOS 的菜单显隐持久化 GUI 测试仍存在未确认的失败，且真实 Finder Sync 签名授权未完成验收。
+
 # 2026-11-03 — 1.0.0-preview product polish
 
 - 菜单栏使用 LiteRight 品牌图形的单色模板资源替代通用 SF Symbol。
