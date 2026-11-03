@@ -64,6 +64,37 @@ final class SettingsSmokeUITests: XCTestCase {
                       "LiteRight must display its native preferences window")
     }
 
+    /// AppKit-hosted SwiftUI must not place the main detail heading under
+    /// a translucent titlebar/toolbar. Capture a screenshot in CI to diagnose.
+    @MainActor
+    func testSettingsTitleAndDetailHeaderAreVisible() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
+        app.launchArguments = ["--literight-probe-show-settings"]
+        app.launch()
+        defer { app.terminate() }
+
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 20))
+        XCTAssertEqual(window.label, "LiteRight", "The titlebar must contain only the brand name")
+
+        let title = app.staticTexts["menu-settings-title"].firstMatch
+        let description = app.staticTexts["menu-settings-description"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 10),
+                      "The menu page must provide an accessible detail heading")
+        XCTAssertTrue(description.waitForExistence(timeout: 10))
+        XCTAssertTrue(title.isHittable, "The detail heading must not be covered by the titlebar")
+        XCTAssertTrue(description.isHittable, "The description must not be covered by a toolbar")
+        XCTAssertGreaterThan(title.frame.minY, window.frame.minY + 30,
+                             "Detail headings should begin below the traffic-light/titlebar region")
+        XCTAssertLessThan(title.frame.maxY, description.frame.minY,
+                          "The detail heading must be laid out above its description")
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "LiteRight-settings-titlebar-and-sidebar"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     /// Double-clicking a stopped LiteRight.app must show Settings; the
     /// custom URL tests below separately verify silent Finder work.
     @MainActor
