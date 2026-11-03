@@ -1,5 +1,4 @@
 import Foundation
-import AppKit
 import SwiftUI
 import LiteRightCore
 
@@ -13,13 +12,6 @@ final class PreferenceViewModel: ObservableObject {
 
     #if DEBUG
     var debugPreferencesPath: String { storage.fileURL.path }
-    var debugDisplayGeometry: String {
-        let main = NSScreen.main.map { "frame=\(NSStringFromRect($0.frame)),visible=\(NSStringFromRect($0.visibleFrame))" } ?? "none"
-        let screens = NSScreen.screens.map {
-            "frame=\(NSStringFromRect($0.frame)),visible=\(NSStringFromRect($0.visibleFrame))"
-        }.joined(separator: ";")
-        return "main{\(main)} screens{\(screens)}"
-    }
     #endif
 
     init(preferencesURL: URL? = nil) {

@@ -168,10 +168,8 @@ final class SettingsSmokeUITests: XCTestCase {
         app.activate()
         let settingsTitle = app.staticTexts["menu-settings-title"]
         XCTAssertTrue(settingsTitle.waitForExistence(timeout: 10))
-        let debugValue = settingsTitle.value as? String ?? ""
-        print("LiteRight UI probe: \(debugValue)")
-        XCTAssertTrue(debugValue.hasPrefix("path=\(testPreferences.path)\n"),
-                      "The app must use the isolated preferences file supplied by its probe argument")
+        XCTAssertEqual(settingsTitle.value as? String, testPreferences.path,
+                       "The app must use the isolated preferences file supplied by its probe argument")
         var toggle = app.checkBoxes.matching(identifier: toggleIdentifier).firstMatch
         if !toggle.waitForExistence(timeout: 2) {
             toggle = app.switches.matching(identifier: toggleIdentifier).firstMatch
