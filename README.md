@@ -9,7 +9,7 @@ LiteRight 是原生 Swift / SwiftUI + AppKit 的轻量 macOS Finder 右键工具
 - 四个 LiteRight 菜单支持排序和独立显示/隐藏，不更改 Finder 系统菜单。
 - Terminal.app / iTerm2 自动检测；Shell 单独检测 Bash、Zsh、Fish，缺失选项置灰。
 - 菜单栏和 Dock 图标可设置显隐；登录启动由 ServiceManagement 管理。
-- 「通用」设置支持添加、移除和刷新 Finder 监控目录；「权限管理」可查看系统报告的扩展启用状态及主应用 App Group 可访问情况（均不能替代实际 Finder 右键验收）。
+- 「通用」设置支持添加、移除和刷新 Finder 监控目录；「通用 → 系统集成」可查看 Finder 扩展启用状态并打开系统管理界面。
 - 原子文件创建 O_EXCL，避免覆盖与并发重复命名；本地 App Group 配置和短期请求桥接。
 
 ## 构建
@@ -55,3 +55,10 @@ GitHub Actions 的独立工作流 **LiteRight macOS unnotarized developer previe
 Finder Sync 的右键菜单作用域由已登记监控目录决定，扩展无法无条件覆盖所有 Finder 位置。动态监控目录与右键目标判定已经纳入 macOS 自动化测试；签名、公证和真实 Finder 菜单仍需要实机验证。
 
 请使用 [Finder Sync 签名安装与实机验收指南](docs/finder-real-machine-acceptance.md)，以 `swift ci/verify-signed-app.swift /path/to/LiteRight.app` 验证主应用及扩展签名、TeamIdentifier 与 App Group，再将截图和测试结果填写进 [P0 验收矩阵](docs/p0-matrix.md)。**未获得签名实机证据前，项目仍为 No-Go。**
+
+## 1.0.0-preview 版本与诊断
+
+- 用户界面版本显示 `1.0.0-preview`，系统 `CFBundleShortVersionString` 为 `1.0.0`，`LiteRightReleaseChannel` 为 `preview`，构建号保持数字格式。
+- Finder 扩展管理入口已移入「通用 → 系统集成」。终端 AppleScript 自动化授权能力仍保留。
+- 「关于 → 复制诊断信息」包含系统、CPU 架构、Finder 系统报告状态、通信通道和监控目录数量，不包含用户名及监控路径。
+- 菜单栏图标使用品牌 SVG 的单色模板变体。
