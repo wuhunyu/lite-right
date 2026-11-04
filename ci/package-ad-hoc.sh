@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shared ad-hoc packaging for both developer previews and the v1.0.0 community build.
+# Shared ad-hoc packaging for developer previews and community releases.
 # Ad-hoc signatures carry no Apple Developer Team identity and do not authorize App Group access.
 set -euo pipefail
 
@@ -15,10 +15,18 @@ case "$CHANNEL" in
         SUCCESS_MESSAGE='Created ad-hoc signed, not notarized previews:'
         ;;
     release)
-        DMG_VOLUME='LiteRight 1.0.0 Unnotarized'
-        README_SOURCE='docs/unsigned-release.md'
+        VERSION="${LABEL#v}"
+        if [[ ! "$LABEL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'ERROR: release label must be a semantic version tag such as v1.0.1' >&2
+            exit 1
+        fi
+        DMG_VOLUME="LiteRight $VERSION Unnotarized"
+        README_SOURCE="docs/unsigned-release-v${VERSION}.md"
+        if [ "$VERSION" = "1.0.0" ]; then
+            README_SOURCE='docs/unsigned-release.md'
+        fi
         README_NAME='README-IMPORTANT-Unnotarized.md'
-        SUCCESS_MESSAGE='Created v1.0.0 ad-hoc signed, UNNOTARIZED community release:'
+        SUCCESS_MESSAGE="Created $LABEL ad-hoc signed, UNNOTARIZED community release:"
         ;;
     *)
         echo 'ERROR: channel must be preview or release' >&2

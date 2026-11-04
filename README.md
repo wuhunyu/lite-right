@@ -1,13 +1,11 @@
 # LiteRight
 
-## 已发布版本 v1.0.0（未公证）
+## 已发布版本 v1.0.1（未公证）
 
-v1.0.1 正在进行兼容性重构与性能优化，尚未发布。
-
-- [GitHub Releases v1.0.0](https://github.com/wuhunyu/lite-right/releases/tag/v1.0.0)：macOS 27+、Apple Silicon（arm64），ZIP/DMG，附 SHA-256 校验文件。
+- [GitHub Releases v1.0.1](https://github.com/wuhunyu/lite-right/releases/tag/v1.0.1)：macOS 27+、Apple Silicon（arm64），ZIP/DMG，附 SHA-256 校验文件。
 - **警告：安装包采用 ad-hoc 临时签名，没有 Developer ID 签名和 Apple 公证。** 用户需自行核实来源、同意 macOS 安全提示后才能打开；Finder 扩展授权不保证自动通过。
 - 此未公证发行包保留本地 `lite-right://run` 操作通道，无法认证发起 URL 的其他本机程序；使用者应评估本机安全环境。
-- 完整风险说明和安装步骤见 [1.0.0 发布说明](docs/unsigned-release.md)，不要关闭 SIP 或全局禁用 Gatekeeper。
+- 完整风险说明和安装步骤见 [1.0.1 发布说明](docs/unsigned-release-v1.0.1.md)，不要关闭 SIP 或全局禁用 Gatekeeper。
 
 
 LiteRight 是原生 Swift / SwiftUI + AppKit 的轻量 macOS Finder 右键工具，目标平台 macOS 27。
@@ -42,9 +40,9 @@ App Icon PNG 由已提交的 SVG 矢量源码在构建时生成，不要求运�
 
 ## 当前阶段
 
-GitHub 正式发布版本为 **v1.0.0（未经 Apple Developer ID 签名或公证）**。用户可在了解风险后自行安装，但**并非已完成完整 Finder 兼容性、安全签名与权限验收的产品**。Finder Sync 官方监控目录有覆盖限制；扩展能否在所有期望位置以一级菜单显示、Terminal 是否不受 Tab 偏好影响而新建窗口、授权弹窗和 macOS 27 玻璃界面，必须在真正的 macOS 27 机器上测试。请参阅 docs/p0-matrix.md。
+GitHub 正式发布版本为 **v1.0.1（未经 Apple Developer ID 签名或公证）**。用户可在了解风险后自行安装，但**并非已完成完整 Finder 兼容性、安全签名与权限验收的产品**。Finder Sync 官方监控目录有覆盖限制；扩展能否在所有期望位置以一级菜单显示、授权弹窗和 macOS 27 玻璃界面，必须在真正的 macOS 27 机器上测试。请参阅 docs/p0-matrix.md。
 
-默认监控主目录，不保证搜索结果、最近使用、iCloud、外接盘和网络共享的菜单可用；P0 未通过时，不能宣称扩展兼容性已获官方/完整验收；此 v1.0.0 属于用户明确接受风险的未公证二进制发布。2026-11-03 起已移除“显示/隐藏文件”功能及其辅助功能权限需求；升级时会丢弃旧菜单条目，保留其余菜单顺序、显隐及终端设置。复制绝对路径的实际 Finder 操作仍需签名机器验收。
+默认监控主目录，不保证搜索结果、最近使用、iCloud、外接盘和网络共享的菜单可用；P0 未通过时，不能宣称扩展兼容性已获官方/完整验收；此 v1.0.1 属于用户明确接受风险的未公证二进制发布。2026-11-03 起已移除“显示/隐藏文件”功能及其辅助功能权限需求；升级时会丢弃旧菜单条目，保留其余菜单顺序、显隐及终端设置。复制绝对路径的实际 Finder 操作仍需签名机器验收。
 
 运行不需要联网、root、关闭 SIP、Electron 或 WebView。仓库暂不附加开源许可证。
 
@@ -64,9 +62,9 @@ GitHub Actions 的独立工作流 **LiteRight macOS unnotarized developer previe
 
 Finder Sync 的右键菜单作用域由已登记监控目录决定，扩展无法无条件覆盖所有 Finder 位置。动态监控目录与右键目标判定已经纳入 macOS 自动化测试；签名、公证和真实 Finder 菜单仍需要实机验证。
 
-请使用 [Finder Sync 签名安装与实机验收指南](docs/finder-real-machine-acceptance.md)，以 `swift ci/verify-signed-app.swift /path/to/LiteRight.app` 验证主应用及扩展签名、TeamIdentifier 与 App Group，再将截图和测试结果填写进 [P0 验收矩阵](docs/p0-matrix.md)。**完整签名 / 公证 / Finder 扩展验收仍为 No-Go；v1.0.0 为公开且明确披露风险的 ad-hoc 发行版，不代表通过上述门禁。**
+请使用 [Finder Sync 签名安装与实机验收指南](docs/finder-real-machine-acceptance.md)，以 `swift ci/verify-signed-app.swift /path/to/LiteRight.app` 验证主应用及扩展签名、TeamIdentifier 与 App Group，再将截图和测试结果填写进 [P0 验收矩阵](docs/p0-matrix.md)。**完整签名 / 公证 / Finder 扩展验收仍为 No-Go；v1.0.1 为公开且明确披露风险的 ad-hoc 发行版，不代表通过上述门禁。**
 
-## 1.0.1-preview 版本与诊断
+## 1.0.1 版本与诊断
 
 - 用户界面版本显示 `1.0.1-preview`，系统 `CFBundleShortVersionString` 为 `1.0.1`，`LiteRightReleaseChannel` 为 `preview`，构建号保持数字格式。
 - Finder 扩展管理入口已移入「通用 → 系统集成」。终端 AppleScript 自动化授权能力仍保留。

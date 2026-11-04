@@ -49,7 +49,7 @@ jobs:
           bash -n ci/package-release.sh
           bash -n ci/package-ad-hoc.sh
           ruby -e 'require "yaml"; YAML.load_file(".github/workflows/release-v1.yml")'
-          grep -Fq 'gh release create v1.0.0' .github/workflows/release-v1.yml
+          grep -Fq 'gh release create "$TAG"' .github/workflows/release-v1.yml
       - name: Build and test v1.0.0 release channel and ad-hoc packaging
         run: |
           set -euo pipefail

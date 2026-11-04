@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stable v1.0.0 release packaging entry point. Shared steps live in package-ad-hoc.sh.
+# Community release packaging entry point. Shared steps live in package-ad-hoc.sh.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 exec bash "$SCRIPT_DIR/package-ad-hoc.sh" "${1:-}" "${2:-}" "${3:-}" release
