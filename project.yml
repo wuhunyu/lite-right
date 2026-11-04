@@ -10,6 +10,8 @@ settings:
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES
     LITERIGHT_RELEASE_CHANNEL: preview
+    MARKETING_VERSION: "1.0.1"
+    CURRENT_PROJECT_VERSION: "1"
 packages:
   LiteRightCore:
     path: LiteRightCore
@@ -42,8 +44,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wuhunyu.literight
         INFOPLIST_KEY_CFBundleDisplayName: LiteRight
-        MARKETING_VERSION: 1.0.0
-        CURRENT_PROJECT_VERSION: 1
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: LiteRightCore
@@ -75,8 +75,6 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wuhunyu.literight.finder
-        MARKETING_VERSION: 1.0.0
-        CURRENT_PROJECT_VERSION: 1
     dependencies:
       - package: LiteRightCore
   LiteRightUITests:

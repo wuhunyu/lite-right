@@ -47,15 +47,18 @@ enum TerminalLauncher {
             end run
             """
         }
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        task.arguments = ["-e", script, directory.path, path, preferences.clearAfterCD ? "true" : "false"]
-        let stderr = Pipe()
-        task.standardError = stderr
-        try task.run()
-        task.waitUntilExit()
-        if task.terminationStatus != 0 {
-            let detail = String(data: stderr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let result: AsyncProcessResult
+        do {
+            result = try await AsyncProcessRunner.run(
+                executableURL: URL(fileURLWithPath: "/usr/bin/osascript"),
+                arguments: ["-e", script, directory.path, path, preferences.clearAfterCD ? "true" : "false"],
+                timeout: .seconds(30)
+            )
+        } catch AsyncProcessRunnerError.timedOut {
+            throw LiteRightError.operationFailed("无法打开终端，等待终端响应超时。")
+        }
+        if result.terminationStatus != 0 {
+            let detail = result.standardError
             throw LiteRightError.operationFailed("无法打开终端，请检查自动化授权。\n\(detail)")
         }
     }

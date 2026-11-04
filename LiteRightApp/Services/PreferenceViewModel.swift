@@ -7,10 +7,15 @@ final class PreferenceViewModel: ObservableObject {
     @Published private(set) var value: GeneralPreferences
     @Published var lastError: String?
     @Published private(set) var sharedSyncWarning: String?
-    private let storage = HostPreferencesStore()
+    private let storage: HostPreferencesStore
     private let sharedStorage = SharedPreferences()
 
-    init() {
+    #if DEBUG
+    var debugPreferencesPath: String { storage.fileURL.path }
+    #endif
+
+    init(preferencesURL: URL? = nil) {
+        storage = HostPreferencesStore(fileURL: preferencesURL)
         do {
             value = try storage.load()
         } catch {
@@ -23,6 +28,8 @@ final class PreferenceViewModel: ObservableObject {
         var updated = value
         change(&updated)
         updated = updated.normalized()
+        guard updated != value else { return }
+        updated.advanceRevision()
         let monitoredRootsChanged = updated.monitoredFolderPaths != value.monitoredFolderPaths
         do {
             // Commit canonical user settings independently of App Group privileges.

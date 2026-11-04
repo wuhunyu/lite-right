@@ -42,4 +42,20 @@ final class RequestStoreTests: XCTestCase {
         try store.save(req)
         XCTAssertThrowsError(try store.claim(id: req.id))
     }
+
+    func testCleanupRemovesExpiredPendingRequestAndKeepsFreshRequest() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try RequestStore(baseDirectory: root)
+        let expired = OperationRequest(
+            action: .copyDirectoryPath, directoryPath: "/tmp", terminalBundleID: nil,
+            createdAt: Date(timeIntervalSinceNow: -120)
+        )
+        let fresh = OperationRequest(action: .newText, directoryPath: "/tmp", terminalBundleID: nil)
+        try store.save(expired)
+        XCTAssertEqual(store.cleanupExpiredRequests(), 1)
+        XCTAssertThrowsError(try store.claim(id: expired.id))
+        try store.save(fresh)
+        XCTAssertEqual(try store.claim(id: fresh.id).id, fresh.id)
+    }
 }

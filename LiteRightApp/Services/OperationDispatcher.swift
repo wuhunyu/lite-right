@@ -7,7 +7,7 @@ import os
 final class OperationDispatcher: ObservableObject {
     private let logger = Logger(subsystem: "com.wuhunyu.literight", category: "operations")
     #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
-    private var seenPreviewRequests = Set<UUID>()
+    private var seenPreviewRequests = RequestDeduplicator()
     private var recentPreviewRequests: [Date] = []
     #endif
 
@@ -24,7 +24,7 @@ final class OperationDispatcher: ObservableObject {
             // transport and cannot be triggered by arbitrary request payloads.
             if params.queryItems?.contains(where: { $0.name == "request" }) == true {
                 let request = try PreviewRequestLink.decode(url)
-                guard seenPreviewRequests.insert(request.id).inserted else {
+                guard seenPreviewRequests.insert(request.id) else {
                     throw LiteRightError.requestAlreadyProcessed
                 }
                 let now = Date()
@@ -86,8 +86,9 @@ final class OperationDispatcher: ObservableObject {
     private func validatedCopyTarget(
         _ request: OperationRequest, requireMonitoredRoot: Bool
     ) throws -> URL {
-        guard let rawPath = request.directoryPath,
-              let target = TargetResolver.validatedCopyTarget(URL(fileURLWithPath: rawPath))
+        guard let operationTarget = request.operationTarget,
+              case let .absolutePath(rawTarget) = operationTarget,
+              let target = TargetResolver.validatedCopyTarget(rawTarget)
         else { throw LiteRightError.invalidDirectory }
 
         if requireMonitoredRoot {
@@ -114,10 +115,9 @@ final class OperationDispatcher: ObservableObject {
     private func validatedRequestDirectory(
         _ request: OperationRequest, requireMonitoredRoot: Bool
     ) throws -> URL {
-        guard let rawPath = request.directoryPath,
-              let directory = TargetResolver.validatedDirectory(
-                URL(fileURLWithPath: rawPath, isDirectory: true)
-              ) else {
+        guard let operationTarget = request.operationTarget,
+              case let .directory(rawDirectory) = operationTarget,
+              let directory = TargetResolver.validatedDirectory(rawDirectory) else {
             throw LiteRightError.invalidDirectory
         }
         if requireMonitoredRoot {

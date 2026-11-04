@@ -45,9 +45,11 @@ jobs:
       - name: Validate release packaging script and GitHub workflow YAML
         run: |
           set -euo pipefail
+          bash -n ci/package-preview.sh
           bash -n ci/package-release.sh
+          bash -n ci/package-ad-hoc.sh
           ruby -e 'require "yaml"; YAML.load_file(".github/workflows/release-v1.yml")'
-          grep -Fq 'gh release create v1.0.0' .github/workflows/release-v1.yml
+          grep -Fq 'gh release create "$TAG"' .github/workflows/release-v1.yml
       - name: Build and test v1.0.0 release channel and ad-hoc packaging
         run: |
           set -euo pipefail
@@ -63,6 +65,8 @@ jobs:
           swift ci/verify-app-bundle.swift "$APP" release
           bash ci/package-release.sh "$APP" "$RUNNER_TEMP/v1-release-smoke" v1.0.0
           bash ci/test-preview-package.sh "$RUNNER_TEMP/v1-release-smoke" v1.0.0 release
+          bash ci/package-ad-hoc.sh "$APP" "$RUNNER_TEMP/shared-v1-release-smoke" v1.0.0 release
+          bash ci/test-preview-package.sh "$RUNNER_TEMP/shared-v1-release-smoke" v1.0.0 release
       - name: Inspect the actual app and embedded Finder extension
         run: |
           swift ci/verify-app-bundle.swift "$RUNNER_TEMP/LiteRightDerived/Build/Products/Debug/LiteRight.app" | tee bundle-check.log

@@ -133,12 +133,7 @@ final class SettingsSmokeUITests: XCTestCase {
 
     /// Read the actual on-disk snapshot rather than assuming macOS 27
     /// accessibility checkboxes expose a nonempty XCUIElement.value string.
-    private func savedMarkdownVisibility() -> Bool? {
-        let support = FileManager.default.urls(
-            for: .applicationSupportDirectory, in: .userDomainMask
-        ).first ?? FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support", isDirectory: true)
-        let file = support.appendingPathComponent("LiteRight/preferences.json")
+    private func savedMarkdownVisibility(at file: URL) -> Bool? {
         guard let bytes = try? Data(contentsOf: file),
               let json = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
               let entries = json["orderedMenuItems"] as? [[String: Any]],
@@ -148,46 +143,80 @@ final class SettingsSmokeUITests: XCTestCase {
         return entry["isVisible"] as? Bool
     }
 
+    private func checkBoxValue(_ element: XCUIElement) -> Int? {
+        if let number = element.value as? NSNumber { return number.intValue }
+        if let string = element.value as? String { return Int(string) }
+        return nil
+    }
+
     @MainActor
     func testMenuVisibilityPersistsAcrossAppRestart() throws {
         let app = XCUIApplication(bundleIdentifier: "com.wuhunyu.literight")
-        app.launchArguments = ["--literight-probe-show-settings"]
+        let testPreferences = FileManager.default.temporaryDirectory
+            .appendingPathComponent("literight-ui-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("preferences.json")
+        defer { try? FileManager.default.removeItem(at: testPreferences.deletingLastPathComponent()) }
+        app.launchArguments = [
+            "--literight-probe-show-settings",
+            "--literight-probe-preferences-path=\(testPreferences.path)"
+        ]
         app.launch()
         defer { app.terminate() }
         let toggleIdentifier = "menu-visibility-newMarkdown"
-        let baseline = savedMarkdownVisibility() ?? true
+        let baseline = savedMarkdownVisibility(at: testPreferences) ?? true
 
         app.activate()
-        var toggle = app.descendants(matching: .any)
-            .matching(identifier: toggleIdentifier).firstMatch
+        let settingsTitle = app.staticTexts["menu-settings-title"]
+        XCTAssertTrue(settingsTitle.waitForExistence(timeout: 10))
+        XCTAssertEqual(settingsTitle.value as? String, testPreferences.path,
+                       "The app must use the isolated preferences file supplied by its probe argument")
+        var toggle = app.checkBoxes.matching(identifier: toggleIdentifier).firstMatch
+        if !toggle.waitForExistence(timeout: 2) {
+            toggle = app.switches.matching(identifier: toggleIdentifier).firstMatch
+        }
         XCTAssertTrue(toggle.waitForExistence(timeout: 20),
-                      "The menu visibility toggle must be accessible")
+                      "The menu visibility toggle must be exposed as a checkbox or switch")
+        XCTAssertTrue(toggle.isHittable,
+                      "The settings window must keep menu controls inside the visible screen; window=\(app.windows.firstMatch.frame), control=\(toggle.frame)")
         if toggle.isHittable {
             toggle.click()
         } else {
-            // Hosted macOS accessibility can expose a valid checkbox without
-            // reporting it as hittable; use its actual screen coordinate.
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
-        XCTAssertEqual(savedMarkdownVisibility(), !baseline,
-                       "The first click must atomically save the new visibility to disk")
+        // Hosted macOS XCUITest reports the checkbox click but does not always
+        // dispatch it as a state change. Space activates the focused checkbox
+        // through the same native accessibility control.
+        if checkBoxValue(toggle) == 1 {
+            app.typeKey(.space, modifierFlags: [])
+        }
+        let toggleGeometry = "type=\(toggle.elementType.rawValue), value=\(String(describing: toggle.value)), selected=\(toggle.isSelected), hittable=\(toggle.isHittable), enabled=\(toggle.isEnabled), frame=\(toggle.frame)"
+        let alert = app.alerts.firstMatch
+        let saveDeadline = Date().addingTimeInterval(3)
+        while Date() < saveDeadline, savedMarkdownVisibility(at: testPreferences) != !baseline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), !baseline,
+                       "The native toggle must save its changed value; \(toggleGeometry); alert=\(alert.exists ? alert.label : "none"); accessibility=\(app.debugDescription)")
 
         // Terminate and relaunch: the second click must restore the persisted
         // value, proving the new process loaded it instead of a default.
         app.terminate()
         app.launch()
         app.activate()
-        toggle = app.descendants(matching: .any)
-            .matching(identifier: toggleIdentifier).firstMatch
+        toggle = app.checkBoxes.matching(identifier: toggleIdentifier).firstMatch
+        if !toggle.waitForExistence(timeout: 2) {
+            toggle = app.switches.matching(identifier: toggleIdentifier).firstMatch
+        }
         XCTAssertTrue(toggle.waitForExistence(timeout: 20))
         if toggle.isHittable {
             toggle.click()
         } else {
-            // Hosted macOS accessibility can expose a valid checkbox without
-            // reporting it as hittable; use its actual screen coordinate.
             toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
         }
-        XCTAssertEqual(savedMarkdownVisibility(), baseline,
+        if checkBoxValue(toggle) == 0 {
+            app.typeKey(.space, modifierFlags: [])
+        }
+        XCTAssertEqual(savedMarkdownVisibility(at: testPreferences), baseline,
                        "The relaunched app must use the saved preference")
     }
 

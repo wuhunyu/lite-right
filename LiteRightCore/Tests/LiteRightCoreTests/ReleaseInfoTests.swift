@@ -7,6 +7,7 @@ final class ReleaseInfoTests: XCTestCase {
         XCTAssertEqual(ReleaseInfo.displayVersion(marketingVersion: "1.0.0", channel: "preview"), "1.0.0-preview")
         XCTAssertEqual(ReleaseInfo.displayVersion(marketingVersion: "1.0.0", channel: "release"), "1.0.0")
         XCTAssertEqual(ReleaseInfo.displayVersion(marketingVersion: "1.0.0", channel: ""), "1.0.0")
+        XCTAssertEqual(ReleaseInfo.displayVersion(marketingVersion: "", channel: "release"), "未知版本")
     }
 
     func testDiagnosticSummaryReportsRealStatesWithoutPrivatePaths() {

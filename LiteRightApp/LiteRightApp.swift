@@ -7,7 +7,7 @@ import LiteRightCore
 /// SwiftUI Window scene. The host stays headless until Settings are requested.
 @MainActor
 final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
-    let model = PreferenceViewModel()
+    let model: PreferenceViewModel
 
     private let statusBar = StatusBarController()
     private let dispatcher = OperationDispatcher()
@@ -17,8 +17,20 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
     // LaunchServices may deliver open-URL after didFinishLaunching or reopen,
     // so use a cancellable, short deferred presentation for ambiguous events.
     private var pendingSettingsPresentation: Task<Void, Never>?
-    private var receivedURLSinceLaunch = false
-    private var lastURLDelivery: Date = .distantPast
+    private var launchIntent = LaunchIntentCoordinator()
+
+    override init() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        let preferencesPath = arguments.first(where: {
+            $0.hasPrefix("--literight-probe-preferences-path=")
+        }).map { String($0.dropFirst("--literight-probe-preferences-path=".count)) }
+        model = PreferenceViewModel(preferencesURL: preferencesPath.map(URL.init(fileURLWithPath:)))
+        #else
+        model = PreferenceViewModel()
+        #endif
+        super.init()
+    }
 
     #if DEBUG || LITERIGHT_UNTRUSTED_PREVIEW
     private func sendPreviewMenuSnapshot() {
@@ -75,8 +87,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         // Incoming operations are never implicit requests to show Settings.
         // Cancel any pending window from application launch/reopen first.
         if !urls.isEmpty {
-            receivedURLSinceLaunch = true
-            lastURLDelivery = Date()
+            launchIntent.recordOperationURL()
             pendingSettingsPresentation?.cancel()
             pendingSettingsPresentation = nil
         }
@@ -119,8 +130,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
         pendingSettingsPresentation = Task { @MainActor [weak self] in
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled, let self else { return }
-            if coldLaunch && self.receivedURLSinceLaunch { return }
-            guard Date().timeIntervalSince(self.lastURLDelivery) > 0.7 else { return }
+            guard self.launchIntent.shouldPresentSettings(afterColdLaunch: coldLaunch) else { return }
             self.openPreferences()
         }
     }
@@ -143,6 +153,7 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func openPreferences() {
         let window: NSWindow
+        var didCreateWindow = false
         if let existing = preferencesWindow {
             window = existing
         } else {
@@ -181,10 +192,20 @@ final class LiteRightApplicationDelegate: NSObject, NSApplicationDelegate {
             created.center()
             preferencesWindow = created
             window = created
+            didCreateWindow = true
         }
 
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+        if didCreateWindow,
+           let visibleFrame = NSScreen.main?.visibleFrame ?? NSScreen.screens.first?.visibleFrame {
+            var frame = window.frame
+            frame.origin.x = min(max(frame.origin.x, visibleFrame.minX),
+                                 max(visibleFrame.minX, visibleFrame.maxX - frame.width))
+            frame.origin.y = min(max(frame.origin.y, visibleFrame.minY),
+                                 max(visibleFrame.minY, visibleFrame.maxY - frame.height))
+            window.setFrame(frame, display: true)
+        }
     }
 }
 

@@ -41,9 +41,10 @@ func check() throws {
     try require(FileManager.default.isExecutableFile(atPath: app.appendingPathComponent("Contents/MacOS/LiteRight").path), "Main app contains executable")
     try require(appInfo["LSUIElement"] as? Bool == true, "Menu-bar/accessory activation is configured")
     try require(hasScheme, "lite-right:// URL scheme is registered")
-    try require(appInfo["CFBundleShortVersionString"] as? String == "1.0.0", "Marketing version 1.0.0")
     try require(appInfo["LiteRightReleaseChannel"] as? String == channel, "Expected channel metadata: \(channel)")
-    try require(appInfo["CFBundleShortVersionString"] as? String == extInfo["CFBundleShortVersionString"] as? String, "App and extension marketing versions match")
+    let appVersion = appInfo["CFBundleShortVersionString"] as? String
+    try require(appVersion?.isEmpty == false, "Marketing version is present")
+    try require(appVersion == extInfo["CFBundleShortVersionString"] as? String, "App and extension marketing versions match")
     try require(appInfo["CFBundleVersion"] as? String == extInfo["CFBundleVersion"] as? String, "App and extension build numbers match")
     try require(finder.pathExtension == "appex", "Embedded Finder extension exists")
     try require(extInfo["CFBundleIdentifier"] as? String == "com.wuhunyu.literight.finder", "Finder extension bundle ID")

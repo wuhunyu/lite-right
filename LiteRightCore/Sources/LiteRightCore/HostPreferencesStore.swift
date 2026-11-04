@@ -39,8 +39,5 @@ public final class HostPreferencesStore {
             attributes: [.posixPermissions: 0o700]
         )
         try bytes.write(to: fileURL, options: .atomic)
-        guard try Data(contentsOf: fileURL) == bytes else {
-            throw LiteRightError.operationFailed("LiteRight 本机偏好设置写入后无法验证，请检查磁盘权限。")
-        }
     }
 }

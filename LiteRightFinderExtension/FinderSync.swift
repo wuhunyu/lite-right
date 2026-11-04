@@ -49,6 +49,10 @@ final class FinderSync: FIFinderSync {
             logger.error("preview_settings_invalid")
             return
         }
+        guard PreviewMenuSync.shouldApply(preferences, over: previewPreferences) else {
+            logger.notice("preview_settings_stale revision=\(preferences.revision)")
+            return
+        }
         previewPreferences = preferences
         logger.notice("preview_settings_received visible_count=\(preferences.orderedMenuItems.filter(\.isVisible).count)")
         reloadMonitoredDirectories()

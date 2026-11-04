@@ -8,7 +8,7 @@ struct AboutView: View {
 
     private var displayedVersion: String {
         ReleaseInfo.displayVersion(
-            marketingVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0",
+            marketingVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
             channel: Bundle.main.object(forInfoDictionaryKey: "LiteRightReleaseChannel") as? String ?? "release"
         )
     }

@@ -8,6 +8,8 @@ struct GeneralSettingsView: View {
     @StateObject private var login = LoginItemController()
     @State private var errorMessage: String?
     @State private var finderExtensionEnabled = false
+    @State private var directoryAccessibility: [String: Bool] = [:]
+    @State private var accessibilityRefreshCount = 0
 
     var body: some View {
         Form {
@@ -48,7 +50,7 @@ struct GeneralSettingsView: View {
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .help(path)
-                            Text(isAccessible(path) ? "当前目录可访问" : "当前不可访问，重新连接后请刷新")
+                            Text(accessibilityStatus(for: path))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -62,6 +64,7 @@ struct GeneralSettingsView: View {
                 HStack {
                     Button("添加监控目录", systemImage: "plus") { chooseDirectories() }
                     Button("刷新监控目录", systemImage: "arrow.clockwise") {
+                        accessibilityRefreshCount &+= 1
                         model.refreshMonitoredDirectories()
                     }
                 }
@@ -75,13 +78,29 @@ struct GeneralSettingsView: View {
             login.refresh()
             finderExtensionEnabled = FIFinderSyncController.isExtensionEnabled
         }
+        .task(id: DirectoryCheckKey(
+            paths: model.value.monitoredFolderPaths,
+            refreshCount: accessibilityRefreshCount
+        )) {
+            let paths = model.value.monitoredFolderPaths
+            let results = await Task.detached(priority: .utility) {
+                Dictionary(uniqueKeysWithValues: paths.map { path in
+                    (path, TargetResolver.validatedDirectory(
+                        URL(fileURLWithPath: path, isDirectory: true)
+                    ) != nil)
+                })
+            }.value
+            guard !Task.isCancelled else { return }
+            directoryAccessibility = results
+        }
         .alert("设置失败", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("确定") { errorMessage = nil }
         } message: { Text(errorMessage ?? "") }
     }
 
-    private func isAccessible(_ path: String) -> Bool {
-        TargetResolver.validatedDirectory(URL(fileURLWithPath: path, isDirectory: true)) != nil
+    private func accessibilityStatus(for path: String) -> String {
+        guard let isAccessible = directoryAccessibility[path] else { return "正在检查目录…" }
+        return isAccessible ? "当前目录可访问" : "当前不可访问，重新连接后请刷新"
     }
 
     private func chooseDirectories() {
@@ -100,4 +119,9 @@ struct GeneralSettingsView: View {
             }
         }
     }
+}
+
+private struct DirectoryCheckKey: Equatable {
+    let paths: [String]
+    let refreshCount: Int
 }
